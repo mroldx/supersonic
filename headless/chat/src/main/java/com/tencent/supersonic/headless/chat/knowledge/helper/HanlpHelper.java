@@ -303,18 +303,31 @@ public class HanlpHelper {
     }
 
     public static List<S2Term> getTerms(List<S2Term> terms, Set<Long> dataSetIds) {
+        // 打印当前分词结果（S2Term列表）的详细信息，用于调试
         logTerms(terms);
+
+        // 检查数据集ID列表是否为空，如果为空则不进行过滤
         if (!CollectionUtils.isEmpty(dataSetIds)) {
+            // 对分词结果进行过滤，仅保留与指定数据集ID匹配的项
             terms = terms.stream().filter(term -> {
+                // 从分词的自然语言属性中提取数据集ID
                 Long dataSetId = NatureHelper.getDataSetId(term.getNature().toString());
+
+                // 如果提取的数据集ID不为空，并且存在于指定的数据集ID列表中，则保留该分词项
                 if (Objects.nonNull(dataSetId)) {
                     return dataSetIds.contains(dataSetId);
                 }
+
+                // 如果无法提取数据集ID，则过滤掉该分词项
                 return false;
             }).collect(Collectors.toList());
+
+            // 打印过滤后的分词结果，用于调试
             log.debug("terms filter by dataSetId:{}", dataSetIds);
             logTerms(terms);
         }
+
+        // 返回过滤后的分词结果列表
         return terms;
     }
 

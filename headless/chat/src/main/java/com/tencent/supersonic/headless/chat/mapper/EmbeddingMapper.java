@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
+ * 用于识别包含向量嵌入的schema元素。它主要用于处理带有向量嵌入的数据结构。
  * A mapper that recognizes schema elements with vector embedding.
  */
 @Slf4j
@@ -27,7 +28,9 @@ public class EmbeddingMapper extends BaseMapper {
 
     @Override
     public boolean accept(ChatQueryContext chatQueryContext) {
+        //判断模式是否为宽松模式
         boolean b0 = MapModeEnum.LOOSE.equals(chatQueryContext.getRequest().getMapModeEnum());
+        // 判断文本转sql是否为LLM_OR_RULE
         boolean b1 = chatQueryContext.getRequest().getText2SQLType() == Text2SQLType.LLM_OR_RULE;
         return b0 || b1;
     }

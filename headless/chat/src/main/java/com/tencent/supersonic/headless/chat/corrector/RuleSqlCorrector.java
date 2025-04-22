@@ -20,6 +20,9 @@ public class RuleSqlCorrector extends BaseSemanticCorrector {
 
     @Override
     public void doCorrect(ChatQueryContext chatQueryContext, SemanticParseInfo semanticParseInfo) {
+//        correctors.add(new SchemaCorrector());
+//        correctors.add(new TimeCorrector());
+//        correctors.add(new GrammarCorrector());
         for (BaseSemanticCorrector corrector : correctors) {
             corrector.correct(chatQueryContext, semanticParseInfo);
         }

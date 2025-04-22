@@ -45,7 +45,7 @@ public class DefaultSemanticTranslator implements SemanticTranslator {
         if (StringUtils.isBlank(queryStatement.getSql())) {
             throw new RuntimeException("parse exception: " + queryStatement.getErrMsg());
         }
-
+        // 翻译语句之后，对sql进行优化
         for (QueryOptimizer optimizer : ComponentFactory.getQueryOptimizers()) {
             if (optimizer.accept(queryStatement)) {
                 optimizer.rewrite(queryStatement);

@@ -19,6 +19,7 @@ public class QueryReqConverter {
         queryNLReq.setText2SQLType(
                 parseContext.enableLLM() ? Text2SQLType.LLM_OR_RULE : Text2SQLType.ONLY_RULE);
         queryNLReq.setDataSetIds(getDataSetIds(parseContext));
+        // agent的chatAppConfig含有大模型的配置，提示词等等信息存在agent表里
         queryNLReq.setChatAppConfig(parseContext.getAgent().getChatAppConfig());
         queryNLReq.setSelectedParseInfo(parseContext.getRequest().getSelectedParse());
         return queryNLReq;
@@ -26,6 +27,7 @@ public class QueryReqConverter {
 
     private static Set<Long> getDataSetIds(ParseContext parseContext) {
         ChatParseReq chatParseReq = parseContext.getRequest();
+        //解析agent里面的toolConfig jsonString里面的datasetId
         Set<Long> dataSetIds = parseContext.getAgent().getDataSetIds();
         Long requestDataSetId = chatParseReq.getDataSetId();
 

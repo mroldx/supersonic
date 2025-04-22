@@ -41,12 +41,13 @@ public class TimeRangeParser implements SemanticParser {
         if (queryContext.getCandidateQueries().isEmpty()) {
             return;
         }
-
+        //根据文本转换日期信息
         String queryText = queryContext.getRequest().getQueryText();
         DateConf dateConf = parseRecent(queryText);
         if (dateConf == null) {
             dateConf = parseDateNumber(queryText);
         }
+        //TimeNLPUtil解析出日期信息
         if (dateConf == null) {
             dateConf = parseDateCN(queryText);
         }

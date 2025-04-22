@@ -37,7 +37,7 @@ public class RuleSqlParser implements SemanticParser {
             candidateQueries.addAll(queries);
         }
         chatQueryContext.setCandidateQueries(candidateQueries);
-
+        //new TimeRangeParser(), new AggregateTypeParser()
         auxiliaryParsers.forEach(p -> p.parse(chatQueryContext));
 
         candidateQueries.forEach(query -> query.buildS2Sql(

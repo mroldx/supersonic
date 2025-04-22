@@ -36,6 +36,14 @@ public class DatabaseMatchStrategy extends SingleMatchStrategy<DatabaseMapResult
         return super.match(chatQueryContext, terms, detectDataSetIds);
     }
 
+    /**
+     * 单步匹配。
+     * @param chatQueryContext
+     * @param detectDataSetIds
+     * @param detectSegment
+     * @param offset
+     * @return
+     */
     public List<DatabaseMapResult> detectByStep(ChatQueryContext chatQueryContext,
             Set<Long> detectDataSetIds, String detectSegment, int offset) {
         if (StringUtils.isBlank(detectSegment)) {

@@ -27,8 +27,9 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 /**
+ * SqlQueryParser 是一个查询解析器，负责对 S2SQL 进行重写，包括将指标/维度名称转换为业务名称，
+ * 并构建 Ontology 查询，为生成物理 SQL 做准备。
  * This parser rewrites S2SQL including conversion from metric/dimension name to bizName and build
  * ontology query in preparation for generation of physical SQL.
  */
@@ -36,11 +37,26 @@ import java.util.stream.Stream;
 @Slf4j
 public class SqlQueryParser implements QueryParser {
 
+    /**
+     * 判断是否接受当前查询语句的解析任务。
+     * 如果查询语句包含 SqlQuery 对象且是 S2SQL 类型，则接受解析任务。
+     *
+     * @param queryStatement 查询语句对象，包含查询的上下文信息。
+     * @return 如果接受解析任务，返回 true；否则返回 false。
+     */
     @Override
     public boolean accept(QueryStatement queryStatement) {
         return Objects.nonNull(queryStatement.getSqlQuery()) && queryStatement.getIsS2SQL();
     }
 
+    /**
+     * 解析查询语句，构建 Ontology 查询，并对 SQL 进行重写。
+     * 该方法会检查查询字段是否与语义字段匹配，设置聚合选项，将字段名称转换为业务名称，
+     * 处理 SQL 中的中文别名问题，并重写 ORDER BY 子句。
+     *
+     * @param queryStatement 查询语句对象，包含查询的上下文信息。
+     * @throws Exception 如果解析过程中发生错误，抛出异常。
+     */
     @Override
     public void parse(QueryStatement queryStatement) throws Exception {
         // build ontologyQuery
@@ -51,6 +67,7 @@ public class SqlQueryParser implements QueryParser {
         Ontology ontology = queryStatement.getOntology();
         OntologyQuery ontologyQuery = buildOntologyQuery(ontology, queryFields);
         // check if there are fields not matched with any metric or dimension
+        // 检查是否有字段未匹配到任何指标或维度
         if (queryFields.size() > ontologyQuery.getMetrics().size()
                 + ontologyQuery.getDimensions().size()) {
             List<String> semanticFields = Lists.newArrayList();
@@ -64,16 +81,19 @@ public class SqlQueryParser implements QueryParser {
             return;
         }
         queryStatement.setOntologyQuery(ontologyQuery);
-
+        // 设置 SQL 查询的聚合选项
         AggOption sqlQueryAggOption = getAggOption(sqlQuery.getSql(), ontologyQuery.getMetrics());
         ontologyQuery.setAggOption(sqlQueryAggOption);
-
+        // 将字段名称转换为业务名称
         convertNameToBizName(queryStatement);
         // Solve the problem of SQL execution error when alias is Chinese
+        // 处理 SQL 中的中文别名问题
         aliasesWithBackticks(queryStatement);
+        // 重写 ORDER BY 子句
         rewriteOrderBy(queryStatement);
 
         // fill sqlQuery
+        // 填充 sqlQuery
         String tableName = SqlSelectHelper.getTableName(sqlQuery.getSql());
         if (StringUtils.isEmpty(tableName)) {
             return;
@@ -87,16 +107,28 @@ public class SqlQueryParser implements QueryParser {
             sqlQuery.setSupportWith(false);
             sqlQuery.setWithAlias(false);
         }
-
+        //解析的sql
         log.info("parse sqlQuery [{}] ", sqlQuery);
     }
 
+    /**
+     * 将 SQL 中的别名用反引号包裹，解决中文别名导致的 SQL 执行错误问题。
+     *
+     * @param queryStatement 查询语句对象，包含查询的上下文信息。
+     */
     private void aliasesWithBackticks(QueryStatement queryStatement) {
         String sql = queryStatement.getSqlQuery().getSql();
         sql = SqlReplaceHelper.replaceAliasWithBackticks(sql);
         queryStatement.getSqlQuery().setSql(sql);
     }
 
+    /**
+     * 根据 SQL 语句和指标模式，确定聚合选项。
+     *
+     * @param sql            SQL 查询语句。
+     * @param metricSchemas  指标模式集合。
+     * @return 聚合选项，包括 AGGREGATION、NATIVE、OUTER 或 DEFAULT。
+     */
     private AggOption getAggOption(String sql, Set<MetricSchemaResp> metricSchemas) {
         if (SqlSelectFunctionHelper.hasAggregateFunction(sql)) {
             return AggOption.AGGREGATION;
@@ -110,6 +142,7 @@ public class SqlQueryParser implements QueryParser {
 
         // if there is no group by in S2SQL,set MetricTable's aggOption to "NATIVE"
         // if there is count() in S2SQL,set MetricTable's aggOption to "NATIVE"
+        // 如果 S2SQL 中没有 GROUP BY，或者包含 count() 函数，设置聚合选项为 NATIVE
         if (!SqlSelectFunctionHelper.hasAggregateFunction(sql)
                 || SqlSelectFunctionHelper.hasFunction(sql, "count")
                 || SqlSelectFunctionHelper.hasFunction(sql, "count_distinct")) {
@@ -130,6 +163,12 @@ public class SqlQueryParser implements QueryParser {
         return AggOption.DEFAULT;
     }
 
+    /**
+     * 构建字段名称到业务名称的映射。
+     *
+     * @param query Ontology 查询对象，包含指标和维度信息。
+     * @return 字段名称到业务名称的映射。
+     */
     private Map<String, String> getNameToBizNameMap(OntologyQuery query) {
         // support fieldName and field alias to bizName
         Map<String, String> dimensionResults = query.getDimensions().stream().flatMap(
@@ -144,6 +183,14 @@ public class SqlQueryParser implements QueryParser {
         return dimensionResults;
     }
 
+    /**
+     * 生成字段名称和业务名称的键值对流。
+     *
+     * @param aliasStr 字段别名。
+     * @param name     字段名称。
+     * @param bizName  业务名称。
+     * @return 字段名称和业务名称的键值对流。
+     */
     private Stream<Pair<String, String>> getPairStream(String aliasStr, String name,
             String bizName) {
         Set<Pair<String, String>> elements = new HashSet<>();
@@ -157,6 +204,11 @@ public class SqlQueryParser implements QueryParser {
         return elements.stream();
     }
 
+    /**
+     * 将 SQL 中的字段名称转换为业务名称。
+     *
+     * @param queryStatement 查询语句对象，包含查询的上下文信息。
+     */
     private void convertNameToBizName(QueryStatement queryStatement) {
         Map<String, String> fieldNameToBizNameMap =
                 getNameToBizNameMap(queryStatement.getOntologyQuery());
@@ -172,6 +224,11 @@ public class SqlQueryParser implements QueryParser {
         queryStatement.getSqlQuery().setSql(sql);
     }
 
+    /**
+     * 重写 ORDER BY 子句，将字段替换为 SELECT 中的序号。
+     *
+     * @param queryStatement 查询语句对象，包含查询的上下文信息。
+     */
     private void rewriteOrderBy(QueryStatement queryStatement) {
         // replace order by field with the select sequence number
         String sql = queryStatement.getSqlQuery().getSql();
@@ -180,11 +237,19 @@ public class SqlQueryParser implements QueryParser {
         queryStatement.getSqlQuery().setSql(newSql);
     }
 
+    /**
+     * 构建 Ontology 查询，根据查询字段匹配指标和维度，并确定其所属模型。
+     *
+     * @param ontology    Ontology 对象，包含指标和维度的映射信息。
+     * @param queryFields 查询字段列表。
+     * @return 构建的 OntologyQuery 对象。
+     */
     private OntologyQuery buildOntologyQuery(Ontology ontology, List<String> queryFields) {
         OntologyQuery ontologyQuery = new OntologyQuery();
         Set<String> fields = Sets.newHashSet(queryFields);
 
         // find belonging model for every querying metrics
+        // 为每个查询指标找到所属模型
         ontology.getMetricMap().entrySet().forEach(entry -> {
             String modelName = entry.getKey();
             entry.getValue().forEach(m -> {
@@ -200,6 +265,7 @@ public class SqlQueryParser implements QueryParser {
         });
 
         // first try to find all querying dimensions in the models with querying metrics.
+        // 首先尝试在包含查询指标的模型中查找所有查询维度
         ontology.getDimensionMap().entrySet().stream()
                 .filter(entry -> ontologyQuery.getMetricMap().containsKey(entry.getKey()))
                 .forEach(entry -> {
@@ -218,6 +284,7 @@ public class SqlQueryParser implements QueryParser {
 
         // second, try to find a model that has all the remaining fields, such that no further join
         // is needed.
+        // 其次，尝试找到一个包含所有剩余字段的模型，以避免额外的连接操作
         if (!fields.isEmpty()) {
             Map<String, Set<DimSchemaResp>> model2dims = new HashMap<>();
             ontology.getDimensionMap().entrySet().forEach(entry -> {
@@ -241,6 +308,7 @@ public class SqlQueryParser implements QueryParser {
 
         // finally if there are still fields not found belonging models, try to find in the models
         // iteratively
+        // 最后，如果仍有字段未找到所属模型，则在模型中迭代查找
         if (!fields.isEmpty()) {
             ontology.getDimensionMap().entrySet().forEach(entry -> {
                 String modelName = entry.getKey();

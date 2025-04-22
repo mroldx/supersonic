@@ -23,13 +23,31 @@ import java.util.stream.Collectors;
 @Data
 public class ChatQueryContext implements Serializable {
 
+    /**
+     * NLP的请求参数，带请求LLM的密钥等参数
+     */
     private QueryNLReq request;
     private ParseResp parseResp;
+    /**
+     * 模型id到数据集id的映射绑定关系 1:N
+     */
     private Map<Long, List<Long>> modelIdToDataSetIds;
     private List<SemanticQuery> candidateQueries = new ArrayList<>();
+
+    /**
+     * 匹配到的元素
+     */
     private SchemaMapInfo mapInfo = new SchemaMapInfo();
+
+    /**
+     * 当前agent的语义模型结构，含数据集、维度、指标等
+     */
     @JsonIgnore
     private SemanticSchema semanticSchema;
+
+    /**
+     * 当前LLM工作流的状态
+     */
     private ChatWorkflowState chatWorkflowState;
 
     public ChatQueryContext() {

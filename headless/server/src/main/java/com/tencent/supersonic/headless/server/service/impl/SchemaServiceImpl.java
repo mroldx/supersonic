@@ -90,6 +90,7 @@ public class SchemaServiceImpl implements SchemaService {
             dataSetList = dataSetSchemaCache.getIfPresent(filter);
         }
         if (CollectionUtils.isEmpty(dataSetList)) {
+            //构建数据集Schema
             dataSetList = buildDataSetSchema(filter);
             dataSetSchemaCache.put(filter, dataSetList);
         }

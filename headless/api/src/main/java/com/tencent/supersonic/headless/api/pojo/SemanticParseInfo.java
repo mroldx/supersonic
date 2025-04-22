@@ -43,6 +43,7 @@ public class SemanticParseInfo implements Serializable {
     private long limit = DEFAULT_DETAIL_LIMIT;
     private double score;
     private List<SchemaElementMatch> elementMatches = Lists.newArrayList();
+    //时间段信息
     private DateConf dateInfo;
     private SqlInfo sqlInfo = new SqlInfo();
     private String textInfo;

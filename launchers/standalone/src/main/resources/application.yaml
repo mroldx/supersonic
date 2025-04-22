@@ -7,7 +7,7 @@ server:
 
 spring:
   profiles:
-    active: ${S2_DB_TYPE:h2}
+    active: mysql
   application:
     name: chat
   config:
@@ -25,6 +25,7 @@ mybatis:
 logging:
   level:
     dev.langchain4j: DEBUG
+    com.tencent.supersonic: DEBUG
     dev.ai4j.openai4j: DEBUG
 
 springdoc:

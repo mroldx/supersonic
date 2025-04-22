@@ -26,26 +26,43 @@ public class LLMRequestService {
     @Autowired
     private ParserConfig parserConfig;
 
+    /**
+     * 获取查询上下文中的数据集 ID。
+     * 通过 DataSetResolver 解析查询上下文和请求中的数据集 ID 列表，返回匹配的数据集 ID。
+     *
+     * @param queryCtx 查询上下文对象，包含查询的上下文信息。
+     * @return 匹配的数据集 ID，如果未找到则返回 null。
+     */
     public Long getDataSetId(ChatQueryContext queryCtx) {
         DataSetResolver dataSetResolver = ComponentFactory.getModelResolver();
         return dataSetResolver.resolve(queryCtx, queryCtx.getRequest().getDataSetIds());
     }
 
+    /**
+     * 构建 LLM 请求对象。
+     * 根据查询上下文和数据集 ID，提取查询文本、指标、维度、数据库信息、分区时间、主键等，构建 LLMReq 对象。
+     *
+     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param dataSetId 数据集 ID。
+     * @return 构建的 LLMReq 对象。
+     */
     public LLMReq getLlmReq(ChatQueryContext queryCtx, Long dataSetId) {
         Map<Long, String> dataSetIdToName = queryCtx.getSemanticSchema().getDataSetIdToName();
         String queryText = queryCtx.getRequest().getQueryText();
-
+        // 构建 LLM 模式（LLMSchema）
         LLMReq.LLMSchema llmSchema = new LLMReq.LLMSchema();
         int fieldCntThreshold =
                 Integer.valueOf(parserConfig.getParameterValue(PARSER_FIELDS_COUNT_THRESHOLD));
         if (queryCtx.getMapInfo().getMatchedElements(dataSetId).size() <= fieldCntThreshold) {
+            // 如果匹配的字段数量小于阈值，则使用完整的指标和维度
             llmSchema.setMetrics(queryCtx.getSemanticSchema().getMetrics());
             llmSchema.setDimensions(queryCtx.getSemanticSchema().getDimensions());
         } else {
+            // 否则，使用映射的指标和维度
             llmSchema.setMetrics(getMappedMetrics(queryCtx, dataSetId));
             llmSchema.setDimensions(getMappedDimensions(queryCtx, dataSetId));
         }
-
+        // 构建 LLM 请求对象
         LLMReq llmReq = new LLMReq();
         llmReq.setQueryText(queryText);
         llmReq.setSchema(llmSchema);
@@ -56,13 +73,13 @@ public class LLMRequestService {
         llmSchema.setDataSetName(dataSetIdToName.get(dataSetId));
         llmSchema.setPartitionTime(getPartitionTime(queryCtx, dataSetId));
         llmSchema.setPrimaryKey(getPrimaryKey(queryCtx, dataSetId));
-
+        // 如果启用了链接值功能，则添加映射的值
         boolean linkingValueEnabled =
                 Boolean.parseBoolean(parserConfig.getParameterValue(PARSER_LINKING_VALUE_ENABLE));
         if (linkingValueEnabled) {
             llmSchema.setValues(getMappedValues(queryCtx, dataSetId));
         }
-
+        // 设置当前日期、术语、SQL 生成类型、聊天应用配置和动态示例
         llmReq.setCurrentDate(DateUtils.getBeforeDate(0));
         llmReq.setTerms(getMappedTerms(queryCtx, dataSetId));
         llmReq.setSqlGenType(
@@ -73,6 +90,13 @@ public class LLMRequestService {
         return llmReq;
     }
 
+    /**
+     * 执行 Text2SQL 转换。
+     * 根据 LLMReq 对象，使用指定的 SQL 生成策略生成 SQL 语句，并返回 LLMResp 对象。
+     *
+     * @param llmReq LLM 请求对象，包含查询文本、模式等信息。
+     * @return 生成的 LLMResp 对象，包含 SQL 查询结果。
+     */
     public LLMResp runText2SQL(LLMReq llmReq) {
         SqlGenStrategy sqlGenStrategy = SqlGenStrategyFactory.get(llmReq.getSqlGenType());
         String dataSet = llmReq.getSchema().getDataSetName();
@@ -82,6 +106,14 @@ public class LLMRequestService {
         return result;
     }
 
+    /**
+     * 获取映射的术语列表。
+     * 从查询上下文中提取与数据集 ID 匹配的术语元素，并转换为 LLMReq.Term 对象列表。
+     *
+     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param dataSetId 数据集 ID。
+     * @return 术语列表，如果未找到则返回空列表。
+     */
     protected List<LLMReq.Term> getMappedTerms(ChatQueryContext queryCtx, Long dataSetId) {
         List<SchemaElementMatch> matchedElements =
                 queryCtx.getMapInfo().getMatchedElements(dataSetId);
@@ -100,6 +132,15 @@ public class LLMRequestService {
         }).collect(Collectors.toList());
     }
 
+
+    /**
+     * 获取映射的值列表。
+     * 从查询上下文中提取与数据集 ID 匹配的值元素，并转换为 LLMReq.ElementValue 对象列表。
+     *
+     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param dataSetId 数据集 ID。
+     * @return 值列表，如果未找到则返回空列表。
+     */
     protected List<LLMReq.ElementValue> getMappedValues(@NotNull ChatQueryContext queryCtx,
             Long dataSetId) {
         List<SchemaElementMatch> matchedElements =
@@ -121,6 +162,14 @@ public class LLMRequestService {
         return new ArrayList<>(valueMatches);
     }
 
+    /**
+     * 获取映射的指标列表。
+     * 从查询上下文中提取与数据集 ID 匹配的指标元素，并转换为 SchemaElement 对象列表。
+     *
+     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param dataSetId 数据集 ID。
+     * @return 指标列表，如果未找到则返回空列表。
+     */
     protected List<SchemaElement> getMappedMetrics(@NotNull ChatQueryContext queryCtx,
             Long dataSetId) {
         List<SchemaElementMatch> matchedElements =
@@ -134,6 +183,14 @@ public class LLMRequestService {
         }).map(SchemaElementMatch::getElement).collect(Collectors.toList());
     }
 
+    /**
+     * 获取映射的维度列表。
+     * 从查询上下文中提取与数据集 ID 匹配的维度元素，并转换为 SchemaElement 对象列表。
+     *
+     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param dataSetId 数据集 ID。
+     * @return 维度列表，如果未找到则返回空列表。
+     */
     protected List<SchemaElement> getMappedDimensions(@NotNull ChatQueryContext queryCtx,
             Long dataSetId) {
 
@@ -146,6 +203,14 @@ public class LLMRequestService {
         return new ArrayList<>(dimensionElements);
     }
 
+    /**
+     * 获取分区时间字段。
+     * 从查询上下文中提取与数据集 ID 匹配的分区时间字段。
+     *
+     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param dataSetId 数据集 ID。
+     * @return 分区时间字段，如果未找到则返回 null。
+     */
     protected SchemaElement getPartitionTime(@NotNull ChatQueryContext queryCtx, Long dataSetId) {
         SemanticSchema semanticSchema = queryCtx.getSemanticSchema();
         if (semanticSchema == null || semanticSchema.getDataSetSchemaMap() == null) {
@@ -156,6 +221,14 @@ public class LLMRequestService {
         return dataSetSchema.getPartitionDimension();
     }
 
+    /**
+     * 获取主键字段。
+     * 从查询上下文中提取与数据集 ID 匹配的主键字段。
+     *
+     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param dataSetId 数据集 ID。
+     * @return 主键字段，如果未找到则返回 null。
+     */
     protected SchemaElement getPrimaryKey(@NotNull ChatQueryContext queryCtx, Long dataSetId) {
         SemanticSchema semanticSchema = queryCtx.getSemanticSchema();
         if (semanticSchema == null || semanticSchema.getDataSetSchemaMap() == null) {
@@ -166,6 +239,14 @@ public class LLMRequestService {
         return dataSetSchema.getPrimaryKey();
     }
 
+    /**
+     * 获取数据库类型和版本。
+     * 从查询上下文中提取与数据集 ID 匹配的数据库类型和版本。
+     *
+     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param dataSetId 数据集 ID。
+     * @return 数据库类型和版本的键值对，如果未找到则返回 null。
+     */
     protected Pair<String, String> getDatabaseType(@NotNull ChatQueryContext queryCtx,
             Long dataSetId) {
         SemanticSchema semanticSchema = queryCtx.getSemanticSchema();

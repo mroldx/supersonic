@@ -73,23 +73,35 @@ public class NL2SQLParser implements ChatQueryParser {
                         .build());
     }
 
+    /**
+     * 解析输入的自然语言查询，生成候选的SQL解析结果。
+     * 该方法首先尝试使用基于规则的解析器，如果必要，再使用大语言模型（LLM）进行解析。
+     *
+     * @param parseContext 解析上下文，包含解析所需的所有信息，包括是否启用NL2SQL、请求详情和响应详情。
+     */
     @Override
     public void parse(ParseContext parseContext) {
+        // 检查是否启用了NL2SQL解析
         if (!parseContext.enableNL2SQL()) {
             return;
         }
 
+        // 首先使用基于规则的解析器，除非用户已经成功解析。
         // first go with rule-based parsers unless the user has already selected one parse.
         if (Objects.isNull(parseContext.getRequest().getSelectedParse())) {
+            // 构建nlp查询请求
             QueryNLReq queryNLReq = QueryReqConverter.buildQueryNLReq(parseContext);
             queryNLReq.setText2SQLType(Text2SQLType.ONLY_RULE);
             if (parseContext.enableLLM()) {
+                // 如果启用了LLM解析，则调整解析策略
                 queryNLReq.setText2SQLType(Text2SQLType.NONE);
             }
 
             // for every requested dataSet, recursively invoke rule-based parser with different
             // mapModes
+            // 对当前请求的agent里面的数据集，依次递归调用基于规则的解析器，使用不同的映射模式
             Set<Long> requestedDatasets = queryNLReq.getDataSetIds();
+            //候选解析列表
             List<SemanticParseInfo> candidateParses = Lists.newArrayList();
             StringBuilder errMsg = new StringBuilder();
             for (Long datasetId : requestedDatasets) {
@@ -98,18 +110,20 @@ public class NL2SQLParser implements ChatQueryParser {
                 for (MapModeEnum mode : Lists.newArrayList(MapModeEnum.STRICT,
                         MapModeEnum.MODERATE)) {
                     queryNLReq.setMapModeEnum(mode);
+                    // 调用大模型解析方法
                     doParse(queryNLReq, parseResp);
                 }
-
+                // 如果两种匹配模式仍未找到解析结果且候选解析列表为空，则尝试较宽松模式
                 if (parseResp.getSelectedParses().isEmpty() && candidateParses.isEmpty()) {
                     queryNLReq.setMapModeEnum(MapModeEnum.LOOSE);
                     doParse(queryNLReq, parseResp);
                 }
-
+                // 如果仍未找到解析结果，记录错误信息并继续处理下一个数据集
                 if (parseResp.getSelectedParses().isEmpty()) {
                     errMsg.append(parseResp.getErrorMsg());
                     continue;
                 }
+                // 对数据集选择一个排序后的最佳解析结果
                 // for one dataset select the top 1 parse after sorting
                 SemanticParseInfo.sort(parseResp.getSelectedParses());
                 candidateParses.add(parseResp.getSelectedParses().get(0));
@@ -120,6 +134,7 @@ public class NL2SQLParser implements ChatQueryParser {
             SemanticParseInfo.sort(candidateParses);
             parseContext.getResponse().setSelectedParses(
                     candidateParses.subList(0, Math.min(parserShowCount, candidateParses.size())));
+            // 如果未找到解析结果，设置响应状态为失败并记录错误信息
             if (parseContext.getResponse().getSelectedParses().isEmpty()) {
                 parseContext.getResponse().setState(ParseResp.ParseState.FAILED);
                 parseContext.getResponse().setErrorMsg(errMsg.toString());
@@ -127,8 +142,10 @@ public class NL2SQLParser implements ChatQueryParser {
         }
 
         // next go with llm-based parsers unless LLM is disabled or use feedback is needed.
+        // 如果需要LLM解析且不需要反馈，则使用LLM进行解析
         if (parseContext.needLLMParse() && !parseContext.needFeedback()) {
             // either the user or the system selects one parse from the candidate parses.
+            // 如果没有选择解析结果且系统中没有候选解析结果，则直接返回
             if (Objects.isNull(parseContext.getRequest().getSelectedParse())
                     && parseContext.getResponse().getSelectedParses().isEmpty()) {
                 return;
@@ -140,12 +157,13 @@ public class NL2SQLParser implements ChatQueryParser {
             queryNLReq.setSelectedParseInfo(Objects.nonNull(userSelectParse) ? userSelectParse
                     : parseContext.getResponse().getSelectedParses().get(0));
             parseContext.setResponse(new ChatParseResp(parseContext.getResponse().getQueryId()));
-
+            // 重写多轮对话并添加动态示例
             rewriteMultiTurn(parseContext, queryNLReq);
             addDynamicExemplars(parseContext, queryNLReq);
             doParse(queryNLReq, parseContext.getResponse());
 
             // try again with all semantic fields passed to LLM
+            // 如果解析失败，尝试将所有语义字段传递给LLM进行再次解析
             if (parseContext.getResponse().getState().equals(ParseResp.ParseState.FAILED)) {
                 queryNLReq.setSelectedParseInfo(null);
                 queryNLReq.setMapModeEnum(MapModeEnum.ALL);
@@ -156,6 +174,7 @@ public class NL2SQLParser implements ChatQueryParser {
 
     private void doParse(QueryNLReq req, ChatParseResp resp) {
         ChatLayerService chatLayerService = ContextUtils.getBean(ChatLayerService.class);
+        //核心方法执行对话语义解析
         ParseResp parseResp = chatLayerService.parse(req);
         if (parseResp.getState().equals(ParseResp.ParseState.COMPLETED)) {
             resp.getSelectedParses().addAll(parseResp.getSelectedParses());

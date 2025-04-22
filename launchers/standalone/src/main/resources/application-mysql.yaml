@@ -1,9 +1,9 @@
 spring:
   datasource:
     driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://${S2_DB_HOST:localhost}:${S2_DB_PORT:3306}/${S2_DB_DATABASE:mysql}?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${S2_DB_HOST:192.168.0.115}:${S2_DB_PORT:3306}/${S2_DB_DATABASE:supersonic}?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&allowPublicKeyRetrieval=true
     username: ${S2_DB_USER:root}
-    password: ${S2_DB_PASSWORD:}
+    password: ${S2_DB_PASSWORD:Yeacer@123456}
   sql:
     init:
       continue-on-error: true

@@ -218,11 +218,15 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetDOMapper, DataSetDO>
         metaFilter.setStatus(StatusEnum.ONLINE.getCode());
         metaFilter.setIds(dataSetIds);
         List<DataSetResp> dataSetList = getDataSetList(metaFilter);
-        return dataSetList.stream()
-                .flatMap(dataSetResp -> dataSetResp.getAllModels().stream()
-                        .map(modelId -> Pair.of(modelId, dataSetResp.getId())))
-                .collect(Collectors.groupingBy(Pair::getLeft,
-                        Collectors.mapping(Pair::getRight, Collectors.toList())));
+        Map<Long, List<Long>> map = new HashMap<>();
+        for (DataSetResp dataSetResp : dataSetList) {
+            for (Long modelId : dataSetResp.getAllModels()) {
+                Pair<Long, Long> of = Pair.of(modelId, dataSetResp.getId());
+                Long right = of.getRight();
+                map.computeIfAbsent(of.getLeft(), k -> new ArrayList<>()).add(right);
+            }
+        }
+        return map;
     }
 
     @Override

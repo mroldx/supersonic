@@ -112,7 +112,7 @@
         <appender-ref ref="keyPipelineAppender"/>
     </logger>
 
-    <root level="INFO">
+    <root level="info">
         <appender-ref ref="fileInfoLog"/>
         <appender-ref ref="fileErrorLog"/>
         <appender-ref ref="consoleLog"/>

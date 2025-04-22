@@ -122,23 +122,38 @@ public abstract class BaseMapper implements SchemaMapper {
     }
 
     public <T> List<T> getMatches(ChatQueryContext chatQueryContext, MatchStrategy matchStrategy) {
+        // 从ChatQueryContext中获取查询文本
         String queryText = chatQueryContext.getRequest().getQueryText();
-        List<S2Term> terms =
-                HanlpHelper.getTerms(queryText, chatQueryContext.getModelIdToDataSetIds());
+
+        // 使用HanlpHelper对查询文本进行分词处理，获取S2Term列表
+        List<S2Term> terms = HanlpHelper.getTerms(queryText, chatQueryContext.getModelIdToDataSetIds());
+
+        // 根据请求中的数据集ID对分词结果进行过滤
         terms = HanlpHelper.getTerms(terms, chatQueryContext.getRequest().getDataSetIds());
+
+        // 使用匹配策略（matchStrategy）对分词结果进行匹配，返回匹配的指标数据集及指标属性
         Map<MatchText, List<T>> matchResult = matchStrategy.match(chatQueryContext, terms,
                 chatQueryContext.getRequest().getDataSetIds());
+
+        // 初始化一个空的匹配结果列表
         List<T> matches = new ArrayList<>();
+
+        // 如果匹配结果为空，直接返回空列表
         if (Objects.isNull(matchResult)) {
             return matches;
         }
+
+        // 从匹配结果中获取第一个非空的匹配项
         Optional<List<T>> first = matchResult.entrySet().stream()
                 .filter(entry -> CollectionUtils.isNotEmpty(entry.getValue()))
                 .map(entry -> entry.getValue()).findFirst();
 
+        // 如果存在非空匹配项，将其添加到匹配结果列表中
         if (first.isPresent()) {
             matches = first.get();
         }
+
+        // 返回最终的匹配结果列表
         return matches;
     }
 }
