@@ -73,6 +73,10 @@ public class NL2SQLParser implements ChatQueryParser {
                         .build());
     }
 
+    public boolean accept(ParseContext parseContext) {
+        return parseContext.enableNL2SQL();
+    }
+
     /**
      * 解析输入的自然语言查询，生成候选的SQL解析结果。
      * 该方法首先尝试使用基于规则的解析器，如果必要，再使用大语言模型（LLM）进行解析。
@@ -81,12 +85,6 @@ public class NL2SQLParser implements ChatQueryParser {
      */
     @Override
     public void parse(ParseContext parseContext) {
-        // 检查是否启用了NL2SQL解析
-        if (!parseContext.enableNL2SQL()) {
-            return;
-        }
-
-        // 首先使用基于规则的解析器，除非用户已经成功解析。
         // first go with rule-based parsers unless the user has already selected one parse.
         if (Objects.isNull(parseContext.getRequest().getSelectedParse())) {
             // 构建nlp查询请求

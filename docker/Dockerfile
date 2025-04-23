@@ -1,11 +1,7 @@
-FROM supersonicbi/supersonic:0.9.10-SNAPSHOT
+FROM openjdk:21-jdk-bullseye as base
 
 # Set the working directory in the container
 WORKDIR /usr/src/app
-
-# Delete old supersonic installation directory and the symbolic link
-RUN rm -rf /usr/src/app/supersonic-standalone-0.9.10-SNAPSHOT
-RUN rm -f /usr/src/app/supersonic-standalone-latest
 
 # Argument to pass in the supersonic version at build time
 ARG SUPERSONIC_VERSION
@@ -17,6 +13,17 @@ COPY assembly/build/supersonic-standalone-${SUPERSONIC_VERSION}.zip .
 RUN unzip supersonic-standalone-${SUPERSONIC_VERSION}.zip && \
     rm supersonic-standalone-${SUPERSONIC_VERSION}.zip
 
+FROM openjdk:21-slim
+
+# Set the working directory in the container
+WORKDIR /usr/src/app
+
+# Argument to pass in the supersonic version at build time
+ARG SUPERSONIC_VERSION
+
+# Copy the supersonic standalone folder into the container
+COPY --from=base /usr/src/app/supersonic-standalone-${SUPERSONIC_VERSION} ./supersonic-standalone-${SUPERSONIC_VERSION}
+
 # Create a symbolic link to the supersonic installation directory
 RUN ln -s /usr/src/app/supersonic-standalone-${SUPERSONIC_VERSION} /usr/src/app/supersonic-standalone-latest
 
@@ -27,4 +34,4 @@ WORKDIR /usr/src/app/supersonic-standalone-${SUPERSONIC_VERSION}
 EXPOSE 9080
 # Command to run the supersonic daemon
 RUN chmod +x bin/supersonic-daemon.sh
-CMD ["bash", "-c", "bin/supersonic-daemon.sh restart standalone docker && tail -f /dev/null"]
+CMD ["bash", "-c", "bin/supersonic-daemon.sh restart standalone ${S2_DB_TYPE} && tail -f /dev/null"]
