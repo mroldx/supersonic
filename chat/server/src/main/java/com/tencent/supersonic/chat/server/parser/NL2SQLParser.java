@@ -78,8 +78,7 @@ public class NL2SQLParser implements ChatQueryParser {
     }
 
     /**
-     * 解析输入的自然语言查询，生成候选的SQL解析结果。
-     * 该方法首先尝试使用基于规则的解析器，如果必要，再使用大语言模型（LLM）进行解析。
+     * 解析输入的自然语言查询，生成候选的SQL解析结果。 该方法首先尝试使用基于规则的解析器，如果必要，再使用大语言模型（LLM）进行解析。
      *
      * @param parseContext 解析上下文，包含解析所需的所有信息，包括是否启用NL2SQL、请求详情和响应详情。
      */
@@ -99,7 +98,7 @@ public class NL2SQLParser implements ChatQueryParser {
             // mapModes
             // 对当前请求的agent里面的数据集，依次递归调用基于规则的解析器，使用不同的映射模式
             Set<Long> requestedDatasets = queryNLReq.getDataSetIds();
-            //候选解析列表
+            // 候选解析列表
             List<SemanticParseInfo> candidateParses = Lists.newArrayList();
             StringBuilder errMsg = new StringBuilder();
             for (Long datasetId : requestedDatasets) {
@@ -172,7 +171,7 @@ public class NL2SQLParser implements ChatQueryParser {
 
     private void doParse(QueryNLReq req, ChatParseResp resp) {
         ChatLayerService chatLayerService = ContextUtils.getBean(ChatLayerService.class);
-        //核心方法执行对话语义解析
+        // 核心方法执行对话语义解析
         ParseResp parseResp = chatLayerService.parse(req);
         if (parseResp.getState().equals(ParseResp.ParseState.COMPLETED)) {
             resp.getSelectedParses().addAll(parseResp.getSelectedParses());

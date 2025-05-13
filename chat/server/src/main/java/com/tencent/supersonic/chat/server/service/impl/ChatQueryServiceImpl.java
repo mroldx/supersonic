@@ -87,10 +87,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
     }
 
     /**
-     * 解析聊天请求的方法
-     * 当查询ID不存在时，创建新的查询ID，并设置到请求中
-     * 通过构建解析上下文，对聊天内容进行解析
-     * 根据解析结果，决定是否需要进一步处理
+     * 解析聊天请求的方法 当查询ID不存在时，创建新的查询ID，并设置到请求中 通过构建解析上下文，对聊天内容进行解析 根据解析结果，决定是否需要进一步处理
      * 如果不需要用户的进一步反馈，将解析结果保存并更新解析耗时
      *
      * @param chatParseReq 聊天解析请求对象，包含需要解析的聊天信息
@@ -107,7 +104,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
         // 构建解析上下文对象，用于后续的解析处理，将请求里面的agent 和 queryId 设置到上下文对象中
         ParseContext parseContext = buildParseContext(chatParseReq, new ChatParseResp(queryId));
         // 遍历所有的查询解析器，对解析上下文进行解析
-        //List<ChatQueryParser> 会拿到接口的所有实现进行逐一解析
+        // List<ChatQueryParser> 会拿到接口的所有实现进行逐一解析
         // 主要看NL2SQLParser的大模型解析
         for (ChatQueryParser parser : chatQueryParsers) {
             if (parser.accept(parseContext)) {

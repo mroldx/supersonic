@@ -65,9 +65,9 @@ public class S2ChatLayerService implements ChatLayerService {
 
     @Override
     public ParseResp parse(QueryNLReq queryNLReq) {
-        //初始化解析响应对象，并设置解析的的开始时间
+        // 初始化解析响应对象，并设置解析的的开始时间
         ParseResp parseResp = new ParseResp(queryNLReq.getQueryText());
-        //提前获取此次要映射的数据集等信息
+        // 提前获取此次要映射的数据集等信息
         ChatQueryContext queryCtx = buildChatQueryContext(queryNLReq);
         queryCtx.setParseResp(parseResp);
         if (queryCtx.getMapInfo().isEmpty()) {
@@ -96,7 +96,7 @@ public class S2ChatLayerService implements ChatLayerService {
 
     private ChatQueryContext buildChatQueryContext(QueryNLReq queryNLReq) {
         ChatQueryContext queryCtx = new ChatQueryContext(queryNLReq);
-        //根据数据集ID查询语义schema
+        // 根据数据集ID查询语义schema
         SemanticSchema semanticSchema = schemaService.getSemanticSchema(queryNLReq.getDataSetIds());
         Map<Long, List<Long>> modelIdToDataSetIds = dataSetService.getModelIdToDataSetIds();
         queryCtx.setSemanticSchema(semanticSchema);

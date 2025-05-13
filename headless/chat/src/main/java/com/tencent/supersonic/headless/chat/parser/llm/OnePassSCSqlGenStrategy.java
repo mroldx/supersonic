@@ -81,7 +81,7 @@ public class OnePassSCSqlGenStrategy extends SqlGenStrategy {
         Map<Prompt, List<Text2SQLExemplar>> prompt2Exemplar = new HashMap<>();
         for (List<Text2SQLExemplar> exemplars : exemplarsList) {
             llmReq.setDynamicExemplars(exemplars);
-            //将系统内置示例集拼接成prompt
+            // 将系统内置示例集拼接成prompt
             Prompt prompt = generatePrompt(llmReq, llmResp, chatApp);
             prompt2Exemplar.put(prompt, exemplars);
         }

@@ -1,8 +1,7 @@
 package com.tencent.supersonic.headless.api.pojo.enums;
 
 /**
- * ChatWorkflowState 枚举类定义了聊天工作流的不同状态。
- * 该枚举类用于表示聊天工作流在执行过程中可能经历的各种阶段。
+ * ChatWorkflowState 枚举类定义了聊天工作流的不同状态。 该枚举类用于表示聊天工作流在执行过程中可能经历的各种阶段。
  */
 public enum ChatWorkflowState {
     /**

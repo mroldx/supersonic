@@ -27,10 +27,10 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 /**
- * SqlQueryParser 是一个查询解析器，负责对 S2SQL 进行重写，包括将指标/维度名称转换为业务名称，
- * 并构建 Ontology 查询，为生成物理 SQL 做准备。
- * This parser rewrites S2SQL including conversion from metric/dimension name to bizName and build
+ * SqlQueryParser 是一个查询解析器，负责对 S2SQL 进行重写，包括将指标/维度名称转换为业务名称， 并构建 Ontology 查询，为生成物理 SQL 做准备。 This
+ * parser rewrites S2SQL including conversion from metric/dimension name to bizName and build
  * ontology query in preparation for generation of physical SQL.
  */
 @Component("SqlQueryParser")
@@ -38,8 +38,7 @@ import java.util.stream.Stream;
 public class SqlQueryParser implements QueryParser {
 
     /**
-     * 判断是否接受当前查询语句的解析任务。
-     * 如果查询语句包含 SqlQuery 对象且是 S2SQL 类型，则接受解析任务。
+     * 判断是否接受当前查询语句的解析任务。 如果查询语句包含 SqlQuery 对象且是 S2SQL 类型，则接受解析任务。
      *
      * @param queryStatement 查询语句对象，包含查询的上下文信息。
      * @return 如果接受解析任务，返回 true；否则返回 false。
@@ -50,9 +49,8 @@ public class SqlQueryParser implements QueryParser {
     }
 
     /**
-     * 解析查询语句，构建 Ontology 查询，并对 SQL 进行重写。
-     * 该方法会检查查询字段是否与语义字段匹配，设置聚合选项，将字段名称转换为业务名称，
-     * 处理 SQL 中的中文别名问题，并重写 ORDER BY 子句。
+     * 解析查询语句，构建 Ontology 查询，并对 SQL 进行重写。 该方法会检查查询字段是否与语义字段匹配，设置聚合选项，将字段名称转换为业务名称， 处理 SQL
+     * 中的中文别名问题，并重写 ORDER BY 子句。
      *
      * @param queryStatement 查询语句对象，包含查询的上下文信息。
      * @throws Exception 如果解析过程中发生错误，抛出异常。
@@ -107,7 +105,7 @@ public class SqlQueryParser implements QueryParser {
             sqlQuery.setSupportWith(false);
             sqlQuery.setWithAlias(false);
         }
-        //解析的sql
+        // 解析的sql
         log.info("parse sqlQuery [{}] ", sqlQuery);
     }
 
@@ -125,8 +123,8 @@ public class SqlQueryParser implements QueryParser {
     /**
      * 根据 SQL 语句和指标模式，确定聚合选项。
      *
-     * @param sql            SQL 查询语句。
-     * @param metricSchemas  指标模式集合。
+     * @param sql SQL 查询语句。
+     * @param metricSchemas 指标模式集合。
      * @return 聚合选项，包括 AGGREGATION、NATIVE、OUTER 或 DEFAULT。
      */
     private AggOption getAggOption(String sql, Set<MetricSchemaResp> metricSchemas) {
@@ -187,8 +185,8 @@ public class SqlQueryParser implements QueryParser {
      * 生成字段名称和业务名称的键值对流。
      *
      * @param aliasStr 字段别名。
-     * @param name     字段名称。
-     * @param bizName  业务名称。
+     * @param name 字段名称。
+     * @param bizName 业务名称。
      * @return 字段名称和业务名称的键值对流。
      */
     private Stream<Pair<String, String>> getPairStream(String aliasStr, String name,
@@ -240,7 +238,7 @@ public class SqlQueryParser implements QueryParser {
     /**
      * 构建 Ontology 查询，根据查询字段匹配指标和维度，并确定其所属模型。
      *
-     * @param ontology    Ontology 对象，包含指标和维度的映射信息。
+     * @param ontology Ontology 对象，包含指标和维度的映射信息。
      * @param queryFields 查询字段列表。
      * @return 构建的 OntologyQuery 对象。
      */

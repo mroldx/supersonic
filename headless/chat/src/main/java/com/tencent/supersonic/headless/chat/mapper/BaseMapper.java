@@ -126,7 +126,8 @@ public abstract class BaseMapper implements SchemaMapper {
         String queryText = chatQueryContext.getRequest().getQueryText();
 
         // 使用HanlpHelper对查询文本进行分词处理，获取S2Term列表
-        List<S2Term> terms = HanlpHelper.getTerms(queryText, chatQueryContext.getModelIdToDataSetIds());
+        List<S2Term> terms =
+                HanlpHelper.getTerms(queryText, chatQueryContext.getModelIdToDataSetIds());
 
         // 根据请求中的数据集ID对分词结果进行过滤
         terms = HanlpHelper.getTerms(terms, chatQueryContext.getRequest().getDataSetIds());

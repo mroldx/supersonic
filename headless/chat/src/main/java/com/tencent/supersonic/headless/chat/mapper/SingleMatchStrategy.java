@@ -23,12 +23,9 @@ public abstract class SingleMatchStrategy<T extends MapResult> extends BaseMatch
     protected MapperHelper mapperHelper;
 
     /**
-     * 匹配
-     * 获取分词结果的偏移量和长度映射（regOffsetToLength）。
-     * 获取查询文本。
-     * 初始化结果集 results 和任务列表 tasks。
-     * 使用双重循环遍历文本，生成检测片段并创建任务。
-     * 执行所有任务，返回匹配结果。
+     * 匹配 获取分词结果的偏移量和长度映射（regOffsetToLength）。 获取查询文本。 初始化结果集 results 和任务列表 tasks。
+     * 使用双重循环遍历文本，生成检测片段并创建任务。 执行所有任务，返回匹配结果。
+     * 
      * @param chatQueryContext
      * @param terms
      * @param detectDataSetIds
@@ -49,10 +46,10 @@ public abstract class SingleMatchStrategy<T extends MapResult> extends BaseMatch
                     String detectSegment = text.substring(startIndex, index).trim();
                     // 创建一个任务
                     // chatQueryContext: 聊天查询上下文。
-                    //detectDataSetIds: 需要检测的数据集 ID 集合。
-                    //detectSegment: 检测片段。
-                    //offset: 偏移量。
-                    //results: 结果集。
+                    // detectDataSetIds: 需要检测的数据集 ID 集合。
+                    // detectSegment: 检测片段。
+                    // offset: 偏移量。
+                    // results: 结果集。
                     Callable<Void> task = createTask(chatQueryContext, detectDataSetIds,
                             detectSegment, offset, results);
                     tasks.add(task);
@@ -66,6 +63,7 @@ public abstract class SingleMatchStrategy<T extends MapResult> extends BaseMatch
 
     /**
      * 创建一个任务。
+     * 
      * @param chatQueryContext 聊天查询上下文。
      * @param detectDataSetIds 需要检测的数据集 ID 集合。
      * @param detectSegment 检测片段。

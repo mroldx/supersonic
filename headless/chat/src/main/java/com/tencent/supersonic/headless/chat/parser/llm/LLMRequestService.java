@@ -27,8 +27,7 @@ public class LLMRequestService {
     private ParserConfig parserConfig;
 
     /**
-     * 获取查询上下文中的数据集 ID。
-     * 通过 DataSetResolver 解析查询上下文和请求中的数据集 ID 列表，返回匹配的数据集 ID。
+     * 获取查询上下文中的数据集 ID。 通过 DataSetResolver 解析查询上下文和请求中的数据集 ID 列表，返回匹配的数据集 ID。
      *
      * @param queryCtx 查询上下文对象，包含查询的上下文信息。
      * @return 匹配的数据集 ID，如果未找到则返回 null。
@@ -39,10 +38,9 @@ public class LLMRequestService {
     }
 
     /**
-     * 构建 LLM 请求对象。
-     * 根据查询上下文和数据集 ID，提取查询文本、指标、维度、数据库信息、分区时间、主键等，构建 LLMReq 对象。
+     * 构建 LLM 请求对象。 根据查询上下文和数据集 ID，提取查询文本、指标、维度、数据库信息、分区时间、主键等，构建 LLMReq 对象。
      *
-     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param queryCtx 查询上下文对象，包含查询的上下文信息。
      * @param dataSetId 数据集 ID。
      * @return 构建的 LLMReq 对象。
      */
@@ -91,8 +89,7 @@ public class LLMRequestService {
     }
 
     /**
-     * 执行 Text2SQL 转换。
-     * 根据 LLMReq 对象，使用指定的 SQL 生成策略生成 SQL 语句，并返回 LLMResp 对象。
+     * 执行 Text2SQL 转换。 根据 LLMReq 对象，使用指定的 SQL 生成策略生成 SQL 语句，并返回 LLMResp 对象。
      *
      * @param llmReq LLM 请求对象，包含查询文本、模式等信息。
      * @return 生成的 LLMResp 对象，包含 SQL 查询结果。
@@ -107,10 +104,9 @@ public class LLMRequestService {
     }
 
     /**
-     * 获取映射的术语列表。
-     * 从查询上下文中提取与数据集 ID 匹配的术语元素，并转换为 LLMReq.Term 对象列表。
+     * 获取映射的术语列表。 从查询上下文中提取与数据集 ID 匹配的术语元素，并转换为 LLMReq.Term 对象列表。
      *
-     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param queryCtx 查询上下文对象，包含查询的上下文信息。
      * @param dataSetId 数据集 ID。
      * @return 术语列表，如果未找到则返回空列表。
      */
@@ -134,10 +130,9 @@ public class LLMRequestService {
 
 
     /**
-     * 获取映射的值列表。
-     * 从查询上下文中提取与数据集 ID 匹配的值元素，并转换为 LLMReq.ElementValue 对象列表。
+     * 获取映射的值列表。 从查询上下文中提取与数据集 ID 匹配的值元素，并转换为 LLMReq.ElementValue 对象列表。
      *
-     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param queryCtx 查询上下文对象，包含查询的上下文信息。
      * @param dataSetId 数据集 ID。
      * @return 值列表，如果未找到则返回空列表。
      */
@@ -163,10 +158,9 @@ public class LLMRequestService {
     }
 
     /**
-     * 获取映射的指标列表。
-     * 从查询上下文中提取与数据集 ID 匹配的指标元素，并转换为 SchemaElement 对象列表。
+     * 获取映射的指标列表。 从查询上下文中提取与数据集 ID 匹配的指标元素，并转换为 SchemaElement 对象列表。
      *
-     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param queryCtx 查询上下文对象，包含查询的上下文信息。
      * @param dataSetId 数据集 ID。
      * @return 指标列表，如果未找到则返回空列表。
      */
@@ -184,10 +178,9 @@ public class LLMRequestService {
     }
 
     /**
-     * 获取映射的维度列表。
-     * 从查询上下文中提取与数据集 ID 匹配的维度元素，并转换为 SchemaElement 对象列表。
+     * 获取映射的维度列表。 从查询上下文中提取与数据集 ID 匹配的维度元素，并转换为 SchemaElement 对象列表。
      *
-     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param queryCtx 查询上下文对象，包含查询的上下文信息。
      * @param dataSetId 数据集 ID。
      * @return 维度列表，如果未找到则返回空列表。
      */
@@ -204,10 +197,9 @@ public class LLMRequestService {
     }
 
     /**
-     * 获取分区时间字段。
-     * 从查询上下文中提取与数据集 ID 匹配的分区时间字段。
+     * 获取分区时间字段。 从查询上下文中提取与数据集 ID 匹配的分区时间字段。
      *
-     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param queryCtx 查询上下文对象，包含查询的上下文信息。
      * @param dataSetId 数据集 ID。
      * @return 分区时间字段，如果未找到则返回 null。
      */
@@ -222,10 +214,9 @@ public class LLMRequestService {
     }
 
     /**
-     * 获取主键字段。
-     * 从查询上下文中提取与数据集 ID 匹配的主键字段。
+     * 获取主键字段。 从查询上下文中提取与数据集 ID 匹配的主键字段。
      *
-     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param queryCtx 查询上下文对象，包含查询的上下文信息。
      * @param dataSetId 数据集 ID。
      * @return 主键字段，如果未找到则返回 null。
      */
@@ -240,10 +231,9 @@ public class LLMRequestService {
     }
 
     /**
-     * 获取数据库类型和版本。
-     * 从查询上下文中提取与数据集 ID 匹配的数据库类型和版本。
+     * 获取数据库类型和版本。 从查询上下文中提取与数据集 ID 匹配的数据库类型和版本。
      *
-     * @param queryCtx  查询上下文对象，包含查询的上下文信息。
+     * @param queryCtx 查询上下文对象，包含查询的上下文信息。
      * @param dataSetId 数据集 ID。
      * @return 数据库类型和版本的键值对，如果未找到则返回 null。
      */

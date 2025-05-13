@@ -39,9 +39,9 @@ public class ChatWorkflowEngine {
         queryCtx.setChatWorkflowState(initialState);
         while (queryCtx.getChatWorkflowState() != ChatWorkflowState.FINISHED) {
             switch (queryCtx.getChatWorkflowState()) {
-                //处理映射
+                // 处理映射
                 case MAPPING:
-                    //执行映射
+                    // 执行映射
                     performMapping(queryCtx);
                     if (queryCtx.getMapInfo().isEmpty()) {
                         parseResult.setState(ParseResp.ParseState.FAILED);
@@ -93,12 +93,12 @@ public class ChatWorkflowEngine {
     private void performMapping(ChatQueryContext queryCtx) {
         if (Objects.isNull(queryCtx.getMapInfo())
                 || MapUtils.isEmpty(queryCtx.getMapInfo().getDataSetElementMatches())) {
-//            com.tencent.supersonic.headless.chat.mapper.EmbeddingMapper, \
-//            com.tencent.supersonic.headless.chat.mapper.KeywordMapper, \
-//            com.tencent.supersonic.headless.chat.mapper.QueryFilterMapper, \
-//            com.tencent.supersonic.headless.chat.mapper.PartitionTimeMapper,\
-//            com.tencent.supersonic.headless.chat.mapper.TermDescMapper,\
-//            com.tencent.supersonic.headless.chat.mapper.AllFieldMapper
+            // com.tencent.supersonic.headless.chat.mapper.EmbeddingMapper, \
+            // com.tencent.supersonic.headless.chat.mapper.KeywordMapper, \
+            // com.tencent.supersonic.headless.chat.mapper.QueryFilterMapper, \
+            // com.tencent.supersonic.headless.chat.mapper.PartitionTimeMapper,\
+            // com.tencent.supersonic.headless.chat.mapper.TermDescMapper,\
+            // com.tencent.supersonic.headless.chat.mapper.AllFieldMapper
             for (SchemaMapper mapper : schemaMappers) {
                 mapper.map(queryCtx);
                 log.debug("{} result:{}", mapper.getClass().getSimpleName(),
@@ -109,9 +109,9 @@ public class ChatWorkflowEngine {
 
     private void performParsing(ChatQueryContext queryCtx) {
         semanticParsers.forEach(parser -> {
-//            com.tencent.supersonic.headless.chat.parser.llm.LLMSqlParser,\
-//            com.tencent.supersonic.headless.chat.parser.rule.RuleSqlParser,\
-//            com.tencent.supersonic.headless.chat.parser.QueryTypeParser
+            // com.tencent.supersonic.headless.chat.parser.llm.LLMSqlParser,\
+            // com.tencent.supersonic.headless.chat.parser.rule.RuleSqlParser,\
+            // com.tencent.supersonic.headless.chat.parser.QueryTypeParser
             parser.parse(queryCtx);
             log.debug("{} result:{}", parser.getClass().getSimpleName(),
                     JsonUtil.toString(queryCtx));
@@ -122,8 +122,8 @@ public class ChatWorkflowEngine {
         List<SemanticQuery> candidateQueries = queryCtx.getCandidateQueries();
         if (CollectionUtils.isNotEmpty(candidateQueries)) {
             for (SemanticQuery semanticQuery : candidateQueries) {
-//                com.tencent.supersonic.headless.chat.corrector.RuleSqlCorrector,\
-//                com.tencent.supersonic.headless.chat.corrector.LLMSqlCorrector
+                // com.tencent.supersonic.headless.chat.corrector.RuleSqlCorrector,\
+                // com.tencent.supersonic.headless.chat.corrector.LLMSqlCorrector
                 for (SemanticCorrector corrector : semanticCorrectors) {
                     corrector.correct(queryCtx, semanticQuery.getParseInfo());
                     if (!ChatWorkflowState.S2SQL_CORRECTING
@@ -136,8 +136,8 @@ public class ChatWorkflowEngine {
     }
 
     private void performTranslating(ChatQueryContext queryCtx, ParseResp parseResult) {
-        List<SemanticParseInfo> semanticParseInfos = queryCtx.getCandidateQueries().stream()
-                .map(SemanticQuery::getParseInfo).toList();
+        List<SemanticParseInfo> semanticParseInfos =
+                queryCtx.getCandidateQueries().stream().map(SemanticQuery::getParseInfo).toList();
         List<String> errorMsg = new ArrayList<>();
         if (StringUtils.isNotBlank(parseResult.getErrorMsg())) {
             errorMsg.add(parseResult.getErrorMsg());

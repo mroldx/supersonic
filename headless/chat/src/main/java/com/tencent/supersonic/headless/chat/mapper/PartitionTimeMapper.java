@@ -24,7 +24,7 @@ public class PartitionTimeMapper extends BaseMapper {
         Map<Long, DataSetSchema> schemaMap =
                 chatQueryContext.getSemanticSchema().getDataSetSchemaMap();
         for (Map.Entry<Long, DataSetSchema> entry : schemaMap.entrySet()) {
-            //过滤分区时间维度
+            // 过滤分区时间维度
             List<SchemaElement> timeDims = entry.getValue().getDimensions().stream()
                     .filter(SchemaElement::isPartitionTime).toList();
             for (SchemaElement schemaElement : timeDims) {

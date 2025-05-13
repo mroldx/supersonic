@@ -16,16 +16,15 @@ import java.util.Map.Entry;
 import java.util.Objects;
 
 /**
- * LLMSqlParser 使用大语言模型（LLM）理解查询语义，并生成 S2SQL 语句，供语义查询引擎执行。
- * LLMSqlParser uses large language model to understand query semantics and generate S2SQL
- * statements to be executed by the semantic query engine.
+ * LLMSqlParser 使用大语言模型（LLM）理解查询语义，并生成 S2SQL 语句，供语义查询引擎执行。 LLMSqlParser uses large language model to
+ * understand query semantics and generate S2SQL statements to be executed by the semantic query
+ * engine.
  */
 @Slf4j
 public class LLMSqlParser implements SemanticParser {
 
     /**
-     * 解析查询上下文，使用大语言模型生成 S2SQL 语句。
-     * 该方法根据查询上下文决定是否跳过解析，获取数据集 ID，并调用 LLM 服务进行解析。
+     * 解析查询上下文，使用大语言模型生成 S2SQL 语句。 该方法根据查询上下文决定是否跳过解析，获取数据集 ID，并调用 LLM 服务进行解析。
      *
      * @param queryCtx 包含查询文本和上下文的查询上下文对象。
      */
@@ -56,10 +55,9 @@ public class LLMSqlParser implements SemanticParser {
     }
 
     /**
-     * 尝试解析查询上下文，使用大语言模型生成 S2SQL 语句。
-     * 该方法会在最大重试次数内调用 LLM 服务，并对生成的 S2SQL 结果进行去重和解析。
+     * 尝试解析查询上下文，使用大语言模型生成 S2SQL 语句。 该方法会在最大重试次数内调用 LLM 服务，并对生成的 S2SQL 结果进行去重和解析。
      *
-     * @param queryCtx  包含查询文本和上下文的查询上下文对象。
+     * @param queryCtx 包含查询文本和上下文的查询上下文对象。
      * @param dataSetId 数据集 ID，用于生成 S2SQL 语句。
      */
     private void tryParse(ChatQueryContext queryCtx, Long dataSetId) {
@@ -73,7 +71,7 @@ public class LLMSqlParser implements SemanticParser {
         Map<String, LLMSqlResp> sqlRespMap = new HashMap<>();
         ParseResult parseResult = null;
         while (currentRetry <= maxRetries) {
-            //log.info("当前重试轮次：{}，开始执行 runText2SQL", currentRetry);
+            // log.info("当前重试轮次：{}，开始执行 runText2SQL", currentRetry);
             log.info("currentRetryRound:{}, start runText2SQL", currentRetry);
             try {
                 LLMResp llmResp = requestService.runText2SQL(llmReq);
