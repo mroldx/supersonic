@@ -17,7 +17,7 @@ import java.util.Objects;
 public class JdbcExecutor implements QueryExecutor {
     @Override
     public boolean accept(QueryStatement queryStatement) {
-        return true;
+        return queryStatement.getIsS2SQL();
     }
 
     @Override

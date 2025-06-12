@@ -156,7 +156,7 @@ public class NL2SQLParser implements ChatQueryParser {
             parseContext.setResponse(new ChatParseResp(parseContext.getResponse().getQueryId()));
             // 重写多轮对话并添加动态示例
             rewriteMultiTurn(parseContext, queryNLReq);
-            addDynamicExemplars(parseContext, queryNLReq);
+            // addDynamicExemplars(parseContext, queryNLReq);
             doParse(queryNLReq, parseContext.getResponse());
 
             // try again with all semantic fields passed to LLM

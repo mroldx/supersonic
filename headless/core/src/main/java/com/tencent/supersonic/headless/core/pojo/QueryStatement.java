@@ -18,6 +18,7 @@ public class QueryStatement {
     private OntologyQuery ontologyQuery;
     private QueryState status = QueryState.SUCCESS;
     private Boolean isS2SQL = false;
+    private Boolean isS2DAX = false;
     private Boolean enableOptimize = true;
     private Triple<String, String, String> minMaxTime;
     private Ontology ontology;

@@ -172,6 +172,96 @@ public class PromptHelper {
                 String.join(",", dimensions), String.join(",", values));
     }
 
+    public String buildDaxSchemaStr(LLMReq llmReq) {
+        String tableStr = llmReq.getSchema().getDataSetName();
+
+        List<String> metrics = Lists.newArrayList();
+        llmReq.getSchema().getMetrics().forEach(metric -> {
+            StringBuilder metricStr = new StringBuilder();
+            metricStr.append("<");
+            metricStr.append(metric.getName());
+            if (!CollectionUtils.isEmpty(metric.getAlias())) {
+                StringBuilder alias = new StringBuilder();
+                metric.getAlias().forEach(a -> alias.append(a).append(","));
+                metricStr.append(" ALIAS '").append(alias).append("'");
+            }
+            if (StringUtils.isNotEmpty(metric.getDataFormatType())) {
+                String dataFormatType = metric.getDataFormatType();
+                if (DataFormatTypeEnum.DECIMAL.getName().equalsIgnoreCase(dataFormatType)
+                        || DataFormatTypeEnum.PERCENT.getName().equalsIgnoreCase(dataFormatType)) {
+                    metricStr.append(" FORMAT '").append(dataFormatType).append("'");
+                }
+            }
+            if (StringUtils.isNotEmpty(metric.getDescription())) {
+                metricStr.append(" COMMENT '").append(metric.getDescription()).append("'");
+            }
+            if (StringUtils.isNotEmpty(metric.getDefaultAgg())) {
+                metricStr.append(" AGGREGATE '").append(metric.getDefaultAgg().toUpperCase())
+                        .append("'");
+            }
+            metricStr.append(">");
+            metrics.add(metricStr.toString());
+        });
+
+        List<String> dimensions = Lists.newArrayList();
+        llmReq.getSchema().getDimensions().forEach(dimension -> {
+            String dimensionStr = "<" + dimension.getBizName() +
+            // if (!CollectionUtils.isEmpty(dimension.getAlias())) {
+            // StringBuilder alias = new StringBuilder();
+            // dimension.getAlias().forEach(a -> alias.append(a).append(";"));
+            // dimensionStr.append(" ALIAS '").append(alias).append("'");
+            // }
+            // if (StringUtils.isNotEmpty(dimension.getTimeFormat())) {
+            // dimensionStr.append(" FORMAT '").append(dimension.getTimeFormat()).append("'");
+            // }
+            // if (StringUtils.isNotEmpty(dimension.getDescription())) {
+            // dimensionStr.append(" COMMENT '").append(dimension.getDescription()).append("'");
+            // }
+            ">";
+            dimensions.add(dimensionStr);
+        });
+
+        List<String> values = Lists.newArrayList();
+        List<LLMReq.ElementValue> elementValueList = llmReq.getSchema().getValues();
+        if (elementValueList != null) {
+            elementValueList.forEach(value -> {
+                StringBuilder valueStr = new StringBuilder();
+                String fieldName = value.getFieldName();
+                String fieldValue = value.getFieldValue();
+                valueStr.append(String.format("<%s='%s'>", fieldName, fieldValue));
+                values.add(valueStr.toString());
+            });
+        }
+
+        String partitionTimeStr = "";
+        if (llmReq.getSchema().getPartitionTime() != null) {
+            partitionTimeStr =
+                    String.format("%s FORMAT '%s'", llmReq.getSchema().getPartitionTime().getName(),
+                            llmReq.getSchema().getPartitionTime().getTimeFormat());
+        }
+
+        String primaryKeyStr = "";
+        if (llmReq.getSchema().getPrimaryKey() != null) {
+            primaryKeyStr = String.format("%s", llmReq.getSchema().getPrimaryKey().getName());
+        }
+
+        String databaseTypeStr = "";
+        if (llmReq.getSchema().getDatabaseType() != null) {
+            databaseTypeStr = llmReq.getSchema().getDatabaseType();
+        }
+        String databaseVersionStr = "";
+        if (llmReq.getSchema().getDatabaseVersion() != null) {
+            databaseVersionStr = llmReq.getSchema().getDatabaseVersion();
+        }
+
+        String template =
+                "DatabaseType=[%s], DatabaseVersion=[%s], Table=[%s], PartitionTimeField=[%s], PrimaryKeyField=[%s], "
+                        + "Metrics=[%s], Dimensions=[%s], Values=[%s]";
+        return String.format(template, databaseTypeStr, databaseVersionStr, tableStr,
+                partitionTimeStr, primaryKeyStr, String.join(",", metrics),
+                String.join(",", dimensions), String.join(",", values));
+    }
+
     private String buildTermStr(LLMReq llmReq) {
         List<LLMReq.Term> terms = llmReq.getTerms();
         List<String> termStr = Lists.newArrayList();

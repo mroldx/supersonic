@@ -1,5 +1,6 @@
 package com.tencent.supersonic.headless.chat.parser.llm;
 
+import com.tencent.supersonic.common.pojo.ChatApp;
 import com.tencent.supersonic.common.pojo.ChatModelConfig;
 import com.tencent.supersonic.common.util.ContextUtils;
 import com.tencent.supersonic.headless.chat.ChatQueryContext;
@@ -14,6 +15,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+
+import static com.tencent.supersonic.headless.chat.parser.ParserConfig.PARSER_STRATEGY_DAX_TYPE;
+import static com.tencent.supersonic.headless.chat.parser.ParserConfig.PARSER_STRATEGY_TYPE;
 
 /**
  * LLMSqlParser 使用大语言模型（LLM）理解查询语义，并生成 S2SQL 语句，供语义查询引擎执行。 LLMSqlParser uses large language model to
@@ -88,8 +92,8 @@ public class LLMSqlParser implements SemanticParser {
             } catch (Exception e) {
                 log.error("currentRetryRound:{}, runText2SQL failed", currentRetry, e);
             }
-            ChatModelConfig chatModelConfig = llmReq.getChatAppConfig()
-                    .get(OnePassSCSqlGenStrategy.APP_KEY).getChatModelConfig();
+            ChatModelConfig chatModelConfig =
+                    getChatModelConfig(llmReq.getChatAppConfig(), llmReq.getSchema().isSSAS());
             Double temperature = chatModelConfig.getTemperature();
             if (temperature == 0) {
                 // 报错时增加随机性，减少无效重试
@@ -106,4 +110,18 @@ public class LLMSqlParser implements SemanticParser {
             responseService.addParseInfo(queryCtx, parseResult, sql, sqlWeight);
         }
     }
+
+    private ChatModelConfig getChatModelConfig(Map<String, ChatApp> chatAppConfig, boolean isDax) {
+        if (chatAppConfig != null && chatAppConfig.containsKey(OnePassSCDaxGenStrategy.APP_KEY)) {
+            ChatApp chatApp = chatAppConfig.get(OnePassSCDaxGenStrategy.APP_KEY);
+            if (chatApp.isEnable() && isDax) {
+                return chatApp.getChatModelConfig();
+            }
+        }
+
+        // 默认值
+        return chatAppConfig.get(OnePassSCSqlGenStrategy.APP_KEY).getChatModelConfig();
+    }
+
+
 }

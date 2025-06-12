@@ -10,6 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 过滤分区时间维度然后加到mapInfo中 chatQueryContext.getMapInfo().getMatchedElements
+ */
 @Slf4j
 public class PartitionTimeMapper extends BaseMapper {
 

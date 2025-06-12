@@ -27,7 +27,7 @@ public class SqlExecutor implements ChatQueryExecutor {
 
     @Override
     public boolean accept(ExecuteContext executeContext) {
-        return true;
+        return !executeContext.getParseInfo().getSqlInfo().getQuerySQL().contains("EVALUATE");
     }
 
     @SneakyThrows

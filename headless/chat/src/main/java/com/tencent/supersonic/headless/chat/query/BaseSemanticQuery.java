@@ -1,6 +1,7 @@
 package com.tencent.supersonic.headless.chat.query;
 
 import com.tencent.supersonic.headless.api.pojo.SemanticParseInfo;
+import com.tencent.supersonic.headless.api.pojo.request.QueryDaxReq;
 import com.tencent.supersonic.headless.api.pojo.request.SemanticQueryReq;
 import com.tencent.supersonic.headless.chat.utils.QueryReqBuilder;
 import lombok.Data;
@@ -18,6 +19,9 @@ public abstract class BaseSemanticQuery implements SemanticQuery, Serializable {
 
     @Override
     public SemanticQueryReq buildSemanticQueryReq() {
+        if (parseInfo.getSqlInfo().getParsedS2SQL().contains("EVALUATE")) {
+            return QueryReqBuilder.buildS2DAXReq(parseInfo.getSqlInfo(), parseInfo.getDataSetId());
+        }
         return QueryReqBuilder.buildS2SQLReq(parseInfo.getSqlInfo(), parseInfo.getDataSetId());
     }
 

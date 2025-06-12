@@ -31,6 +31,9 @@ public class MetricDrillDownChecker {
         if (StringUtils.isBlank(sql)) {
             return;
         }
+        if (queryStatement.getIsS2DAX()) {
+            return;
+        }
         checkQuery(semanticSchemaResp, sql);
     }
 

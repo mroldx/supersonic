@@ -1,7 +1,13 @@
 package com.tencent.supersonic.headless.chat.parser.llm;
 
+import com.amazonaws.services.bedrockagent.model.Agent;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tencent.supersonic.common.pojo.ChatApp;
 import com.tencent.supersonic.common.pojo.Pair;
+import com.tencent.supersonic.common.pojo.Text2SQLExemplar;
 import com.tencent.supersonic.common.util.DateUtils;
+import com.tencent.supersonic.common.util.JsonUtil;
 import com.tencent.supersonic.headless.api.pojo.*;
 import com.tencent.supersonic.headless.chat.ChatQueryContext;
 import com.tencent.supersonic.headless.chat.parser.ParserConfig;
@@ -11,9 +17,11 @@ import com.tencent.supersonic.headless.chat.utils.ComponentFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,6 +33,13 @@ public class LLMRequestService {
 
     @Autowired
     private ParserConfig parserConfig;
+
+    private static final String SYS_EXEMPLAR_FILE = "s2-daxExemplar.json";
+
+    private TypeReference<List<Text2SQLExemplar>> valueTypeRef =
+            new TypeReference<List<Text2SQLExemplar>>() {};
+
+    private final ObjectMapper objectMapper = JsonUtil.INSTANCE.getObjectMapper();
 
     /**
      * 获取查询上下文中的数据集 ID。 通过 DataSetResolver 解析查询上下文和请求中的数据集 ID 列表，返回匹配的数据集 ID。
@@ -50,7 +65,7 @@ public class LLMRequestService {
         // 构建 LLM 模式（LLMSchema）
         LLMReq.LLMSchema llmSchema = new LLMReq.LLMSchema();
         int fieldCntThreshold =
-                Integer.valueOf(parserConfig.getParameterValue(PARSER_FIELDS_COUNT_THRESHOLD));
+                Integer.parseInt(parserConfig.getParameterValue(PARSER_FIELDS_COUNT_THRESHOLD));
         if (queryCtx.getMapInfo().getMatchedElements(dataSetId).size() <= fieldCntThreshold) {
             // 如果匹配的字段数量小于阈值，则使用完整的指标和维度
             llmSchema.setMetrics(queryCtx.getSemanticSchema().getMetrics());
@@ -67,6 +82,11 @@ public class LLMRequestService {
         Pair<String, String> databaseInfo = getDatabaseType(queryCtx, dataSetId);
         llmSchema.setDatabaseType(databaseInfo.first);
         llmSchema.setDatabaseVersion(databaseInfo.second);
+        // 判断是否切换dax解析
+        if (llmSchema.getDatabaseType().equals("SSAS")
+                || llmSchema.getDatabaseType().equals("PowerBI-SemanticModel")) {
+            llmSchema.setSSAS(true);
+        }
         llmSchema.setDataSetId(dataSetId);
         llmSchema.setDataSetName(dataSetIdToName.get(dataSetId));
         llmSchema.setPartitionTime(getPartitionTime(queryCtx, dataSetId));
@@ -80,12 +100,60 @@ public class LLMRequestService {
         // 设置当前日期、术语、SQL 生成类型、聊天应用配置和动态示例
         llmReq.setCurrentDate(DateUtils.getBeforeDate(0));
         llmReq.setTerms(getMappedTerms(queryCtx, dataSetId));
-        llmReq.setSqlGenType(
-                LLMReq.SqlGenType.valueOf(parserConfig.getParameterValue(PARSER_STRATEGY_TYPE)));
+        llmReq.setSqlGenType(LLMReq.SqlGenType.valueOf(determineSqlGenTypeFromChatAppConfig(
+                queryCtx.getRequest().getChatAppConfig(), llmSchema.isSSAS())));
         llmReq.setChatAppConfig(queryCtx.getRequest().getChatAppConfig());
-        llmReq.setDynamicExemplars(queryCtx.getRequest().getDynamicExemplars());
+        if (llmSchema.isSSAS()) {
+            llmReq.setDynamicExemplars(loadSysExemplars());
+        } else {
+            llmReq.setDynamicExemplars(loadExemplars());
+        }
 
         return llmReq;
+    }
+
+    /**
+     * 根据 chatAppConfig 确定 SQLGenType。
+     *
+     * @param chatAppConfig 聊天应用配置对象。
+     * @param isDax 是否要切换dax解析
+     * @return SQLGenType 的字符串表示。
+     */
+    private String determineSqlGenTypeFromChatAppConfig(Map<String, ChatApp> chatAppConfig,
+            boolean isDax) {
+        if (chatAppConfig != null && chatAppConfig.containsKey(OnePassSCDaxGenStrategy.APP_KEY)) {
+            ChatApp chatApp = chatAppConfig.get(OnePassSCDaxGenStrategy.APP_KEY);
+            if (chatApp.isEnable() && isDax) {
+                return parserConfig.getParameterValue(PARSER_STRATEGY_DAX_TYPE);
+            }
+        }
+
+        // 默认值
+        return parserConfig.getParameterValue(PARSER_STRATEGY_TYPE);
+    }
+
+    public List<Text2SQLExemplar> loadSysExemplars() {
+        try {
+            ClassPathResource resource = new ClassPathResource(SYS_EXEMPLAR_FILE);
+            InputStream inputStream = resource.getInputStream();
+
+            return objectMapper.readValue(inputStream, valueTypeRef);
+        } catch (Exception e) {
+            log.error("Failed to load system exemplars", e);
+        }
+        return Collections.emptyList();
+    }
+
+    public List<Text2SQLExemplar> loadExemplars() {
+        try {
+            ClassPathResource resource = new ClassPathResource("s2-exemplar.json");
+            InputStream inputStream = resource.getInputStream();
+
+            return objectMapper.readValue(inputStream, valueTypeRef);
+        } catch (Exception e) {
+            log.error("Failed to load system exemplars", e);
+        }
+        return Collections.emptyList();
     }
 
     /**

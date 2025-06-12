@@ -147,6 +147,11 @@ public abstract class BaseDbAdaptor implements DbAdaptor {
         final Properties properties = new Properties();
         String url = connectionInfo.getUrl().toLowerCase();
 
+        // 针对SSAS的情况 使用匿名 不需要设置用户 密码
+        if (url.startsWith("jdbc:xmla:server=") && url.endsWith("msmdpump.dll")) {
+            return properties;
+        }
+
         // 设置通用属性
         properties.setProperty("user", connectionInfo.getUserName());
 

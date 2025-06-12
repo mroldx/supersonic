@@ -3,6 +3,7 @@ package com.tencent.supersonic.headless.chat.parser.llm;
 import com.tencent.supersonic.common.jsqlparser.SqlValidHelper;
 import com.tencent.supersonic.common.pojo.Constants;
 import com.tencent.supersonic.common.pojo.DateConf;
+import com.tencent.supersonic.common.pojo.Text2DAXExemplar;
 import com.tencent.supersonic.common.pojo.Text2SQLExemplar;
 import com.tencent.supersonic.headless.api.pojo.DataSetSchema;
 import com.tencent.supersonic.headless.api.pojo.SchemaElement;
@@ -47,7 +48,11 @@ public class LLMResponseService {
                         .sideInfo(parseResult.getLlmResp().getSideInfo())
                         .dbSchema(parseResult.getLlmResp().getSchema())
                         .sql(parseResult.getLlmResp().getSqlOutput()).build();
-        properties.put(Text2SQLExemplar.PROPERTY_KEY, exemplar);
+        if (s2SQL.contains("EVALUATE")) {
+            properties.put(Text2DAXExemplar.PROPERTY_KEY, exemplar);
+        } else {
+            properties.put(Text2SQLExemplar.PROPERTY_KEY, exemplar);
+        }
         parseInfo.setProperties(properties);
         parseInfo.setScore(queryCtx.getRequest().getQueryText().length() * (1 + weight));
         parseInfo.setQueryMode(semanticQuery.getQueryMode());
@@ -78,10 +83,10 @@ public class LLMResponseService {
                     .anyMatch(existKey -> SqlValidHelper.equals(existKey, key))) {
                 continue;
             }
-            if (!SqlValidHelper.isValidSQL(key)) {
-                log.error("currentRetry:{},sql is not valid:{}", currentRetry, key);
-                continue;
-            }
+            // if (!SqlValidHelper.isValidSQL(key)) {
+            // log.error("currentRetry:{},sql is not valid:{}", currentRetry, key);
+            // continue;
+            // }
             result.put(key, entry.getValue());
         }
         return result;

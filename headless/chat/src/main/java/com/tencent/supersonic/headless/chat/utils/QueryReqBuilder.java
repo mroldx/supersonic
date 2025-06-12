@@ -11,10 +11,7 @@ import com.tencent.supersonic.common.pojo.enums.QueryType;
 import com.tencent.supersonic.headless.api.pojo.SchemaElement;
 import com.tencent.supersonic.headless.api.pojo.SemanticParseInfo;
 import com.tencent.supersonic.headless.api.pojo.SqlInfo;
-import com.tencent.supersonic.headless.api.pojo.request.QueryFilter;
-import com.tencent.supersonic.headless.api.pojo.request.QueryMultiStructReq;
-import com.tencent.supersonic.headless.api.pojo.request.QuerySqlReq;
-import com.tencent.supersonic.headless.api.pojo.request.QueryStructReq;
+import com.tencent.supersonic.headless.api.pojo.request.*;
 import com.tencent.supersonic.headless.api.pojo.response.DataSetResp;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -119,6 +116,16 @@ public class QueryReqBuilder {
 
     public static QuerySqlReq buildS2SQLReq(SqlInfo sqlInfo, Long dataSetId) {
         QuerySqlReq querySQLReq = new QuerySqlReq();
+        if (Objects.nonNull(sqlInfo.getCorrectedS2SQL())) {
+            querySQLReq.setSql(sqlInfo.getCorrectedS2SQL());
+        }
+        querySQLReq.setSqlInfo(sqlInfo);
+        querySQLReq.setDataSetId(dataSetId);
+        return querySQLReq;
+    }
+
+    public static QueryDaxReq buildS2DAXReq(SqlInfo sqlInfo, Long dataSetId) {
+        QueryDaxReq querySQLReq = new QueryDaxReq();
         if (Objects.nonNull(sqlInfo.getCorrectedS2SQL())) {
             querySQLReq.setSql(sqlInfo.getCorrectedS2SQL());
         }

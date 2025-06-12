@@ -5,6 +5,7 @@ import com.google.common.collect.Sets;
 import com.tencent.supersonic.common.pojo.ChatApp;
 import com.tencent.supersonic.common.pojo.Text2SQLExemplar;
 import com.tencent.supersonic.common.pojo.User;
+import com.tencent.supersonic.common.pojo.enums.Text2DAXType;
 import com.tencent.supersonic.common.pojo.enums.Text2SQLType;
 import com.tencent.supersonic.headless.api.pojo.QueryDataType;
 import com.tencent.supersonic.headless.api.pojo.SemanticParseInfo;
@@ -25,6 +26,7 @@ public class QueryNLReq extends SemanticQueryReq implements Serializable {
     private QueryFilters queryFilters;
     private boolean saveAnswer = true;
     private Text2SQLType text2SQLType = Text2SQLType.LLM_OR_RULE;
+    private Text2DAXType text2DAXType = Text2DAXType.LLM_OR_RULE;
     private MapModeEnum mapModeEnum = MapModeEnum.STRICT;
     private QueryDataType queryDataType = QueryDataType.ALL;
     private Map<String, ChatApp> chatAppConfig;

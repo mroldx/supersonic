@@ -17,6 +17,11 @@ public class ParserConfig extends ParameterConfig {
                     "ONE_PASS_SELF_CONSISTENCY: 通过投票方式一步生成sql", "list", "语义解析配置",
                     Lists.newArrayList("ONE_PASS_SELF_CONSISTENCY"));
 
+    public static final Parameter PARSER_STRATEGY_DAX_TYPE =
+            new Parameter("s2.parser.s2dax.strategy", "ONE_PASS_SELF_CONSISTENCY_WITH_DAX",
+                    "LLM解析生成S2DAX策略", "ONE_PASS_SELF_CONSISTENCY_WITH_DAX: 通过投票方式一步生成dax", "list",
+                    "语义解析配置", Lists.newArrayList("ONE_PASS_SELF_CONSISTENCY_WITH_DAX"));
+
     public static final Parameter PARSER_RULE_CORRECTOR_ENABLE =
             new Parameter("s2.parser.rule.corrector.enable", "false", "是否开启规则修正器",
                     "规则修正器灵活度有限，在大模型能力足够情况下，不必强制做规则修正", "bool", "语义解析配置");

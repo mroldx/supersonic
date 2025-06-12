@@ -8,6 +8,7 @@ com.tencent.supersonic.chat.server.parser.ChatQueryParser=\
 com.tencent.supersonic.chat.server.executor.ChatQueryExecutor=\
     com.tencent.supersonic.chat.server.executor.PluginExecutor, \
     com.tencent.supersonic.chat.server.executor.SqlExecutor,\
+    com.tencent.supersonic.chat.server.executor.DaxExecutor,\
     com.tencent.supersonic.chat.server.executor.PlainTextExecutor
 
 com.tencent.supersonic.chat.server.plugin.recognize.PluginRecognizer=\

@@ -53,6 +53,9 @@ public class ModelDO {
 
     private Integer isOpen;
 
+    /**
+     * 下钻维度
+     */
     private String drillDownDimensions;
 
     private String alias;

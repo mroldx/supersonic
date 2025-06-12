@@ -58,6 +58,11 @@ public class DefaultSemanticTranslator implements SemanticTranslator {
     private void mergeOntologyQuery(QueryStatement queryStatement) throws Exception {
         OntologyQuery ontologyQuery = queryStatement.getOntologyQuery();
         if (Objects.isNull(ontologyQuery) || StringUtils.isBlank(ontologyQuery.getSql())) {
+            // 判断是否是DAX转换
+            if (queryStatement.getIsS2DAX()) {
+                queryStatement.setSql(queryStatement.getSqlQuery().getSql());
+                return;
+            }
             throw new Exception(String.format("parse ontology sql [%s] error [%s]",
                     StringUtils.normalizeSpace(queryStatement.getSqlQuery().getSql()),
                     queryStatement.getErrMsg()));

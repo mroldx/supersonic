@@ -59,6 +59,11 @@ public class SqlQueryParser implements QueryParser {
     public void parse(QueryStatement queryStatement) throws Exception {
         // build ontologyQuery
         SqlQuery sqlQuery = queryStatement.getSqlQuery();
+        if (sqlQuery.getSql().contains("EVALUATE")) {
+            log.info("parse daxQuery [{}] ", sqlQuery);
+            queryStatement.setIsS2DAX(true);
+            return;
+        }
         List<String> queryFields = SqlSelectHelper.getAllSelectFields(sqlQuery.getSql());
         Set<String> queryAliases = SqlSelectHelper.getAliasFields(sqlQuery.getSql());
         queryFields.removeAll(queryAliases);

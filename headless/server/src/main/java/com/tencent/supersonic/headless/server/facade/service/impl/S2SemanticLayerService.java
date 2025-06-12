@@ -88,7 +88,7 @@ public class S2SemanticLayerService implements SemanticLayerService {
         return schemaService.getDataSetSchema(id);
     }
 
-    @S2DataPermission
+    // @S2DataPermission
     @Override
     public SemanticTranslateResp translate(SemanticQueryReq queryReq, User user) throws Exception {
         QueryStatement queryStatement = buildQueryStatement(queryReq, user);
@@ -98,7 +98,7 @@ public class S2SemanticLayerService implements SemanticLayerService {
     }
 
     @Override
-    @S2DataPermission
+    // @S2DataPermission
     @SneakyThrows
     public SemanticQueryResp queryByReq(SemanticQueryReq queryReq, User user) {
         TaskStatusEnum state = TaskStatusEnum.SUCCESS;
@@ -285,6 +285,9 @@ public class S2SemanticLayerService implements SemanticLayerService {
         if (semanticQueryReq instanceof QuerySqlReq) {
             queryStatement = buildSqlQueryStatement((QuerySqlReq) semanticQueryReq, user);
         }
+        if (semanticQueryReq instanceof QueryDaxReq) {
+            queryStatement = buildDaxQueryStatement((QueryDaxReq) semanticQueryReq, user);
+        }
         if (semanticQueryReq instanceof QueryStructReq) {
             queryStatement = buildStructQueryStatement(semanticQueryReq);
         }
@@ -319,6 +322,29 @@ public class S2SemanticLayerService implements SemanticLayerService {
     private QueryStatement buildSqlQueryStatement(QuerySqlReq querySqlReq, User user) {
         QueryStatement queryStatement = buildQueryStatement(querySqlReq);
         queryStatement.setIsS2SQL(true);
+
+        SqlQuery sqlQuery = new SqlQuery();
+        sqlQuery.setSql(querySqlReq.getSql());
+        queryStatement.setSqlQuery(sqlQuery);
+
+        // If dataSetId or DataSetName is empty, parse dataSetId from the SQL
+        if (querySqlReq.needGetDataSetId()) {
+            Long dataSetId = dataSetService.getDataSetIdFromSql(querySqlReq.getSql(), user);
+            querySqlReq.setDataSetId(dataSetId);
+        }
+        if (querySqlReq.getDataSetId() != null) {
+            DataSetResp dataSetResp = dataSetService.getDataSet(querySqlReq.getDataSetId());
+            queryStatement.setDataSetId(dataSetResp.getId());
+            queryStatement.setDataSetName(dataSetResp.getName());
+            sqlQuery.setTable(Constants.TABLE_PREFIX + dataSetResp.getId());
+        }
+        return queryStatement;
+    }
+
+    private QueryStatement buildDaxQueryStatement(QueryDaxReq querySqlReq, User user) {
+        QueryStatement queryStatement = buildQueryStatement(querySqlReq);
+        queryStatement.setIsS2DAX(true);
+        queryStatement.setIsS2SQL(false);
 
         SqlQuery sqlQuery = new SqlQuery();
         sqlQuery.setSql(querySqlReq.getSql());

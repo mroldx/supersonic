@@ -12,14 +12,10 @@ import com.tencent.supersonic.headless.api.pojo.SchemaItem;
 import com.tencent.supersonic.headless.api.pojo.enums.QueryMethod;
 import com.tencent.supersonic.headless.api.pojo.enums.QueryOptMode;
 import com.tencent.supersonic.headless.api.pojo.enums.QueryTypeBack;
-import com.tencent.supersonic.headless.api.pojo.request.ItemUseReq;
-import com.tencent.supersonic.headless.api.pojo.request.QueryMultiStructReq;
-import com.tencent.supersonic.headless.api.pojo.request.QuerySqlReq;
-import com.tencent.supersonic.headless.api.pojo.request.QueryStructReq;
-import com.tencent.supersonic.headless.api.pojo.request.QueryTagReq;
-import com.tencent.supersonic.headless.api.pojo.request.SemanticQueryReq;
+import com.tencent.supersonic.headless.api.pojo.request.*;
 import com.tencent.supersonic.headless.api.pojo.response.ItemUseResp;
 import com.tencent.supersonic.headless.server.persistence.repository.StatRepository;
+import io.milvus.v2.service.vector.request.QueryReq;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -83,6 +79,9 @@ public class StatUtils {
     public void initStatInfo(SemanticQueryReq semanticQueryReq, User facadeUser) {
         if (semanticQueryReq instanceof QuerySqlReq) {
             initSqlStatInfo((QuerySqlReq) semanticQueryReq, facadeUser);
+        }
+        if (semanticQueryReq instanceof QueryDaxReq) {
+            initDaxStatInfo((QueryDaxReq) semanticQueryReq, facadeUser);
         }
         if (semanticQueryReq instanceof QueryStructReq) {
             initStructStatInfo((QueryStructReq) semanticQueryReq, facadeUser);
@@ -155,6 +154,26 @@ public class StatUtils {
             }
         } catch (JsonProcessingException e) {
             log.error("initStatInfo:{}", e);
+        }
+        StatUtils.set(queryStatInfo);
+    }
+
+    public void initDaxStatInfo(QueryDaxReq queryDaxReq, User facadeUser) {
+        QueryStat queryStatInfo = new QueryStat();
+        String userName = getUserName(facadeUser);
+        try {
+            queryStatInfo.setTraceId("").setUser(userName).setDataSetId(queryDaxReq.getDataSetId())
+                    .setQueryType(QueryMethod.DAX.getValue())
+                    .setQueryTypeBack(QueryTypeBack.NORMAL.getState())
+                    .setQuerySqlCmd(queryDaxReq.toString())
+                    .setQuerySqlCmdMd5(DigestUtils.md5Hex(queryDaxReq.toString()))
+                    .setStartTime(System.currentTimeMillis()).setUseResultCache(true)
+                    .setUseSqlCache(true);
+            if (!CollectionUtils.isEmpty(queryDaxReq.getModelIds())) {
+                queryStatInfo.setModelId(queryDaxReq.getModelIds().get(0));
+            }
+        } catch (Exception e) {
+            log.error("initDaxStatInfo:{}", e);
         }
         StatUtils.set(queryStatInfo);
     }

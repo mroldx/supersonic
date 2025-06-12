@@ -41,7 +41,8 @@ com.tencent.supersonic.headless.core.translator.parser.QueryParser=\
     com.tencent.supersonic.headless.core.translator.parser.OntologyQueryParser
 
 com.tencent.supersonic.headless.core.executor.QueryExecutor=\
-    com.tencent.supersonic.headless.core.executor.JdbcExecutor
+    com.tencent.supersonic.headless.core.executor.JdbcExecutor,\
+    com.tencent.supersonic.headless.core.executor.Olap4jExecutor
 
 com.tencent.supersonic.headless.core.cache.QueryCache=\
     com.tencent.supersonic.headless.core.cache.DefaultQueryCache
@@ -63,6 +64,7 @@ com.tencent.supersonic.chat.server.parser.ChatQueryParser=\
 com.tencent.supersonic.chat.server.executor.ChatQueryExecutor=\
     com.tencent.supersonic.chat.server.executor.PluginExecutor, \
     com.tencent.supersonic.chat.server.executor.SqlExecutor,\
+    com.tencent.supersonic.chat.server.executor.DaxExecutor,\
     com.tencent.supersonic.chat.server.executor.PlainTextExecutor
 
 com.tencent.supersonic.chat.server.plugin.recognize.PluginRecognizer=\

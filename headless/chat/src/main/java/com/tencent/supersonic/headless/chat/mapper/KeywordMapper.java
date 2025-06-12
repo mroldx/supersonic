@@ -27,7 +27,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * * A mapper that recognizes schema elements with keyword. It leverages two matching strategies:
+ * 识别带有关键字的模式元素的映射器。它利用了两种匹配策略：HanlpDictMatchStrategy和DatabaseMatchStrategy。 * A mapper that
+ * recognizes schema elements with keyword. It leverages two matching strategies:
  * HanlpDictMatchStrategy and DatabaseMatchStrategy.
  */
 @Slf4j

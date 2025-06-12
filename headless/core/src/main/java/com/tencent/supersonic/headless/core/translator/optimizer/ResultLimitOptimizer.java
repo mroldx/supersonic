@@ -11,7 +11,7 @@ public class ResultLimitOptimizer implements QueryOptimizer {
 
     @Override
     public boolean accept(QueryStatement queryStatement) {
-        return !SqlSelectHelper.hasLimit(queryStatement.getSql());
+        return queryStatement.getIsS2SQL() && !SqlSelectHelper.hasLimit(queryStatement.getSql());
     }
 
     @Override

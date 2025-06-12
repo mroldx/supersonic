@@ -12,6 +12,7 @@ import com.tencent.supersonic.common.util.JsonUtil;
 import com.tencent.supersonic.headless.api.pojo.DimValueMap;
 import com.tencent.supersonic.headless.api.pojo.MetaFilter;
 import com.tencent.supersonic.headless.api.pojo.SchemaItem;
+import com.tencent.supersonic.headless.api.pojo.request.QueryDaxReq;
 import com.tencent.supersonic.headless.api.pojo.request.QuerySqlReq;
 import com.tencent.supersonic.headless.api.pojo.request.QueryStructReq;
 import com.tencent.supersonic.headless.api.pojo.request.SemanticQueryReq;
@@ -63,6 +64,9 @@ public class DimValueAspect {
         if (queryReq instanceof QuerySqlReq) {
             return handleSqlDimValue(joinPoint);
         }
+        if (queryReq instanceof QueryDaxReq) {
+            return joinPoint.proceed();
+        }
         throw new InvalidArgumentException("queryReq is not Invalid:" + queryReq);
     }
 
@@ -92,6 +96,9 @@ public class DimValueAspect {
         MetaFilter metaFilter = new MetaFilter(Lists.newArrayList(querySqlReq.getModelIds()));
         String sql = querySqlReq.getSql();
         log.debug("correctorSql before replacing:{}", sql);
+        if (!sql.contains("select")) {
+            return joinPoint.proceed();
+        }
         List<FieldExpression> fieldExpressionList = SqlSelectHelper.getWhereExpressions(sql);
         List<DimensionResp> dimensions = dimensionService.getDimensions(metaFilter);
         Set<String> fieldNames =

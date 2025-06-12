@@ -16,9 +16,12 @@ public class DbDialectOptimizer implements QueryOptimizer {
 
     @Override
     public boolean accept(QueryStatement queryStatement) {
-        SemanticSchemaResp semanticSchemaResp = queryStatement.getSemanticSchema();
-        DatabaseResp database = semanticSchemaResp.getDatabaseResp();
-        return Objects.nonNull(database) && Objects.nonNull(database.getType());
+        if (queryStatement.getIsS2SQL()) {
+            SemanticSchemaResp semanticSchemaResp = queryStatement.getSemanticSchema();
+            DatabaseResp database = semanticSchemaResp.getDatabaseResp();
+            return Objects.nonNull(database) && Objects.nonNull(database.getType());
+        }
+        return false;
     }
 
     @Override

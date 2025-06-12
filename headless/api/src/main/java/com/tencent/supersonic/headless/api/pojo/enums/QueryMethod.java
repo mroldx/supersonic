@@ -3,6 +3,8 @@ package com.tencent.supersonic.headless.api.pojo.enums;
 public enum QueryMethod {
     SQL("SQL"),
 
+    DAX("DAX"),
+
     STRUCT("STRUCT");
 
     private String value;

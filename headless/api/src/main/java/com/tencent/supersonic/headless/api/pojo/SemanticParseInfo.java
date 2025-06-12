@@ -46,6 +46,8 @@ public class SemanticParseInfo implements Serializable {
     // 时间段信息
     private DateConf dateInfo;
     private SqlInfo sqlInfo = new SqlInfo();
+    // dax
+    private DaxInfo daxInfo = new DaxInfo();
     private String textInfo;
     private SqlEvaluation sqlEvaluation = new SqlEvaluation();
     private Map<String, Object> properties = Maps.newHashMap();

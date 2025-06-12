@@ -46,6 +46,7 @@ public class LLMReq {
         private List<ElementValue> values;
         private SchemaElement partitionTime;
         private SchemaElement primaryKey;
+        private boolean isSSAS;
 
         public List<String> getFieldNameList() {
             Set<String> fieldNameList = new HashSet<>();
@@ -76,7 +77,9 @@ public class LLMReq {
     }
 
     public enum SqlGenType {
-        ONE_PASS_SELF_CONSISTENCY("1_pass_self_consistency");
+        ONE_PASS_SELF_CONSISTENCY("1_pass_self_consistency"),
+
+        ONE_PASS_SELF_CONSISTENCY_WITH_DAX("1_pass_self_consistency_with_DAX");
 
         private final String name;
 

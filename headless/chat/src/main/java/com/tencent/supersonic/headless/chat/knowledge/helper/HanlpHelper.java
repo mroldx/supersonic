@@ -53,6 +53,12 @@ public class HanlpHelper {
         }
     }
 
+    /**
+     * 1. getSegment() 作用：获取 HanLP 的分词器实例（单例），并进行一系列分词参数的配置。 细节： 启用索引分词、强制自定义词典、偏移量等。
+     * 禁用人名、地名、机构名等命名实体识别，提升分词速度。 绑定自定义词典。
+     * 
+     * @return
+     */
     public static Segment getSegment() {
         if (segment == null) {
             synchronized (HanlpHelper.class) {
