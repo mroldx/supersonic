@@ -6,7 +6,9 @@ import com.tencent.supersonic.headless.api.pojo.SemanticParseInfo;
 import com.tencent.supersonic.headless.chat.ChatQueryContext;
 import lombok.extern.slf4j.Slf4j;
 
-/** QueryTypeParser resolves query type as either AGGREGATE or DETAIL */
+/**
+ * QueryTypeParser resolves query type as either AGGREGATE or DETAIL
+ */
 @Slf4j
 public class QueryTypeParser implements SemanticParser {
 
@@ -17,7 +19,7 @@ public class QueryTypeParser implements SemanticParser {
             String s2SQL = parseInfo.getSqlInfo().getParsedS2SQL();
             QueryType queryType = QueryType.DETAIL;
 
-            if (SqlSelectFunctionHelper.hasAggregateFunction(s2SQL)) {
+            if (s2SQL.contains("EVALUATE") || SqlSelectFunctionHelper.hasAggregateFunction(s2SQL)) {
                 queryType = QueryType.AGGREGATE;
             }
 

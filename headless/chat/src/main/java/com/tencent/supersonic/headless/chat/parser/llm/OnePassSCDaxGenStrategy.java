@@ -100,6 +100,7 @@ public class OnePassSCDaxGenStrategy extends SqlGenStrategy {
             output2Prompt.put(s2Dax.getDax(), prompt);
             daxPipelineLog.info("OnePassSCDaxGenStrategy modelReq:\n{} \nmodelResp:\n{}",
                     prompt.text(), s2Dax);
+            daxPipelineLog.info("OnePassSCDaxGenStrategy thought:\n{}", s2Dax.getThought());
         });
 
         // 4.format response.
