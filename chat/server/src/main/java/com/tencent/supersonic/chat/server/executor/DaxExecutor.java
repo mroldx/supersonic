@@ -38,6 +38,7 @@ public class DaxExecutor implements ChatQueryExecutor {
         QueryResult queryResult = doExecute(executeContext);
 
         if (queryResult != null) {
+            //前端数据查询结果转换
             String textResult = ResultFormatter.transform2TextNew(queryResult.getQueryColumns(),
                     queryResult.getQueryResults());
             queryResult.setTextResult(textResult);

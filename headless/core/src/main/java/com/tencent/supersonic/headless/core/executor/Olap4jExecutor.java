@@ -39,6 +39,7 @@ public class Olap4jExecutor implements QueryExecutor {
             for (String key : data.keySet()) {
                 QueryColumn queryColumn = new QueryColumn();
                 queryColumn.setName(key);
+                queryColumn.setBizName(key);
                 queryColumn.setType("String");
                 queryColumns.add(queryColumn);
             }
