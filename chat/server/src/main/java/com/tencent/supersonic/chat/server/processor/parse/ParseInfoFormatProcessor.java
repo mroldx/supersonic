@@ -81,12 +81,10 @@ public class ParseInfoFormatProcessor implements ParseResultProcessor {
 
 
     /**
-     * 1. **解析查询类型**：根据是否包含聚合函数判断是 [AGGREGATE] 查询，还是 [DETAIL] 查询。
-     * 2. **提取过滤条件**：从 SQL 中提取字段表达式，并进一步识别时间范围（date filter）和维度过滤条件（dimension filters）。
-     * 3. **提取指标（Metrics）**：从 SELECT 字段中识别出匹配数据集 schema 的指标项。
-     * 4. **提取维度（Dimensions）**：
-     *    - 若为聚合查询，从 `GROUP BY` 字段中提取维度；
-     *    - 若为明细查询，从 `SELECT` 字段中提取维度。
+     * 1. **解析查询类型**：根据是否包含聚合函数判断是 [AGGREGATE] 查询，还是 [DETAIL] 查询。 2. **提取过滤条件**：从 SQL
+     * 中提取字段表达式，并进一步识别时间范围（date filter）和维度过滤条件（dimension filters）。 3. **提取指标（Metrics）**：从 SELECT
+     * 字段中识别出匹配数据集 schema 的指标项。 4. **提取维度（Dimensions）**： - 若为聚合查询，从 `GROUP BY` 字段中提取维度； - 若为明细查询，从
+     * `SELECT` 字段中提取维度。
      */
     private void buildParseInfoFromSQL(SemanticParseInfo parseInfo) {
         SqlInfo sqlInfo = parseInfo.getSqlInfo();
@@ -97,7 +95,7 @@ public class ParseInfoFormatProcessor implements ParseResultProcessor {
 
         parseQueryType(parseInfo);
 
-        if (sqlInfo.getParsedS2SQL().contains("EVALUATE")){
+        if (sqlInfo.getParsedS2SQL().contains("EVALUATE")) {
             return;
         }
         List<FieldExpression> expressions = SqlSelectHelper.getFilterExpression(s2SQL);
@@ -276,8 +274,8 @@ public class ParseInfoFormatProcessor implements ParseResultProcessor {
 
         // 2. AGG queryType
         if (Objects.nonNull(sqlInfo) && StringUtils.isNotBlank(sqlInfo.getParsedS2SQL())) {
-            if (sqlInfo.getParsedS2SQL().contains("EVALUATE") ||
-                    SqlSelectFunctionHelper.hasAggregateFunction(sqlInfo.getCorrectedS2SQL())) {
+            if (sqlInfo.getParsedS2SQL().contains("EVALUATE")
+                    || SqlSelectFunctionHelper.hasAggregateFunction(sqlInfo.getCorrectedS2SQL())) {
                 parseInfo.setQueryType(QueryType.AGGREGATE);
             }
         }

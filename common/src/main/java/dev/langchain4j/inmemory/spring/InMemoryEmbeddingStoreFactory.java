@@ -82,6 +82,7 @@ public class InMemoryEmbeddingStoreFactory extends BaseEmbeddingStoreFactory {
             }
             try {
                 Path directoryPath = filePath.getParent();
+                log.info("persistFile:{}", filePath);
                 if (!Files.exists(directoryPath)) {
                     Files.createDirectories(directoryPath);
                 }
