@@ -7,7 +7,10 @@ import javax.xml.parsers.ParserConfigurationException;
 import cn.hutool.core.text.split.SplitIter;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.amazonaws.services.cloudsearchv2.model.BaseException;
+import com.tencent.supersonic.common.pojo.ssas.AsConnectInfo;
 import com.tencent.supersonic.common.pojo.ssas.TableColumnInfo;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -34,63 +37,6 @@ import java.util.regex.Pattern;
 
 @Slf4j
 public class SsasXmlaClientUtils {
-
-    public static void main(String[] args) throws SQLException {
-        // List<String> catalogs = new
-        // SsasXmlaClientUtils().getCatalogs("http://192.168.0.115/olap/msmdpump.dll");
-        // System.out.println(catalogs);
-
-        // List<String> tables = new
-        // SsasXmlaClientUtils().getTables("http://192.168.0.115/olap/msmdpump.dll",
-        // "Financial_Analysis");
-        // System.out.println(tables);
-        //
-        // List<TableColumnInfo> columns = new
-        // SsasXmlaClientUtils().getColumns("http://192.168.0.115/olap/msmdpump.dll",
-        // "Financial_Analysis", "DW_D_Company");
-        // System.out.println(columns);
-
-        Properties props = new Properties();
-        // 关键：catalog通过属性"Catalog"传递（注意大小写敏感！）
-        props.setProperty("Catalog", "Tabular_Demo");
-        // 创建驱动实例并连接
-        // 原始HTTP地址
-        String httpUrl =
-                "powerbi://api.powerbi.cn/v1.0/myorg/04-%E6%B5%8B%E8%AF%95%E5%B7%A5%E4%BD%9C%E5%8C%BA-%E6%82%A6%E7%AD%96;Format=Tabular";
-
-        // 必须转换为JDBC XMLA格式
-        String jdbcXmlaUrl = "jdbc:xmla:Server=" + httpUrl;
-        Connection connection = new XmlaOlap4jDriver().connect(jdbcXmlaUrl, props);
-        // Connection connection= DriverManager.getConnection(jdbcXmlaUrl, props);
-        OlapConnection unwrap = connection.unwrap(OlapConnection.class);
-
-        String query01 = "EVALUATE \n" + "SUMMARIZECOLUMNS(\n"
-                + "  --  FILTER(VALUES('F_销售数据表'[公司]), 'F_销售数据表'[公司] = \"深圳公司\"),\n"
-                + "    FILTER(VALUES('D_日期表'[Date]), 'D_日期表'[Date] = DATE(2023,10,1)),\n"
-                + "    \"销售收入\", [销售收入]\n" + ")";
-
-        try (OlapStatement statement = unwrap.createStatement()) {
-            CellSet cellSet = statement.executeOlapQuery(query01);
-            CellSetMetaData metaData = cellSet.getMetaData();
-            // 获取CATALOG_NAME列索引（从0开始）
-            // int catalogNameColIndex = cellSet.getMetaData()
-            // .getColumnFields()
-            // .indexOf("CATALOG_NAME");
-            //
-            // // 提取数据
-            // List<String> catalogs = new ArrayList<>();
-            // for (int row = 0; row < cellSet.getAxes().get(1).getPositions().size(); row++) {
-            // catalogs.add(
-            // cellSet.getCell(row, catalogNameColIndex).getStringValue()
-            // );
-            // }
-        } catch (OlapException e) {
-            e.printStackTrace();
-            // System.out.println(extractFaultString(e));
-        }
-    }
-
-
     /**
      * 执行 DAX 查询并返回 JSON 结果
      */
