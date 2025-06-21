@@ -67,9 +67,11 @@ public class LLMRequestService {
         int fieldCntThreshold =
                 Integer.parseInt(parserConfig.getParameterValue(PARSER_FIELDS_COUNT_THRESHOLD));
         if (queryCtx.getMapInfo().getMatchedElements(dataSetId).size() <= fieldCntThreshold) {
+            log.info("Matched elements count is less than threshold, size:"
+                    +queryCtx.getMapInfo().getMatchedElements(dataSetId).size()+",PARSER_FIELDS_COUNT_THRESHOLD:"+fieldCntThreshold);
             // 如果匹配的字段数量小于阈值，则使用完整的指标和维度
-            llmSchema.setMetrics(queryCtx.getSemanticSchema().getMetrics());
-            llmSchema.setDimensions(queryCtx.getSemanticSchema().getDimensions());
+            llmSchema.setMetrics(queryCtx.getSemanticSchema().getMetrics().stream().distinct().collect(Collectors.toList()));
+            llmSchema.setDimensions(queryCtx.getSemanticSchema().getDimensions().stream().distinct().collect(Collectors.toList()));
         } else {
             // 否则，使用映射的指标和维度
             llmSchema.setMetrics(getMappedMetrics(queryCtx, dataSetId));

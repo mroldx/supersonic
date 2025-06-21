@@ -42,9 +42,13 @@ public class PromptHelper {
         List<Text2SQLExemplar> exemplars = Lists.newArrayList();
         exemplars.addAll(llmReq.getDynamicExemplars());
 
-        int recallSize = exemplarRecallNumber - llmReq.getDynamicExemplars().size();
-        if (recallSize > 0) {
-            exemplars.addAll(exemplarService.recallExemplars(llmReq.getQueryText(), recallSize));
+        // 如果不是dax解析，则获取系统预设的示例
+        if (!llmReq.getSchema().isSSAS()) {
+            int recallSize = exemplarRecallNumber - llmReq.getDynamicExemplars().size();
+            if (recallSize > 0) {
+                exemplars
+                        .addAll(exemplarService.recallExemplars(llmReq.getQueryText(), recallSize));
+            }
         }
 
         List<List<Text2SQLExemplar>> results = new ArrayList<>();
@@ -147,7 +151,7 @@ public class PromptHelper {
         if (llmReq.getSchema().getPartitionTime() != null) {
             partitionTimeStr =
                     String.format("%s FORMAT '%s'", llmReq.getSchema().getPartitionTime().getName(),
-                            llmReq.getSchema().getPartitionTime().getTimeFormat());
+                            llmReq.getSchema().getPartitionTime().getTimeFormat()==null?"yyyy-mm-dd":llmReq.getSchema().getPartitionTime().getTimeFormat());
         }
 
         String primaryKeyStr = "";
