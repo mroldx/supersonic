@@ -15,7 +15,9 @@ public enum EngineType {
     PRESTO(12, "PRESTO"),
     TRINO(13, "TRINO"),
 
-    SSAS(14, "SSAS"),;
+    SSAS(14, "SSAS"),
+
+    POWERBI(14, " POWERBI-SEMANTICMODEL");
 
     private Integer code;
 
