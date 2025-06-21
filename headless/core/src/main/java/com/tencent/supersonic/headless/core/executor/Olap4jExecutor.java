@@ -36,7 +36,7 @@ public class Olap4jExecutor implements QueryExecutor {
                     sqlUtils.getDaxResult(database.getUrl(), sql, database.getName());
 
             List<QueryColumn> queryColumns = new ArrayList<>();
-            for (String key : data.keySet()) {
+            for (String key : resultInfos.get(0).keySet()) {
                 QueryColumn queryColumn = new QueryColumn();
                 queryColumn.setName(key);
                 queryColumn.setBizName(key);
@@ -44,9 +44,7 @@ public class Olap4jExecutor implements QueryExecutor {
                 queryColumns.add(queryColumn);
             }
             queryResultWithColumns.setColumns(queryColumns);
-            List<Map<String, Object>> objects = new ArrayList<>();
-            objects.add(data);
-            queryResultWithColumns.setResultList(objects);
+            queryResultWithColumns.setResultList(resultInfos);
             queryResultWithColumns.setSql(sql);
         } catch (Exception e) {
             log.error("queryInternal with error ", e);

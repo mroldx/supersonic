@@ -9,13 +9,13 @@
         "question": "今年数据资产部,审计部报表访问量",
         "sideInfo": "CurrentDate=[2022-11-06]",
         "dbSchema": "DatabaseType=[SSAS], Table=[报表访问量], PartitionTimeField=[D_日期表.Date FORMAT 'yyyy-MM-dd'],Metrics=[<报表访问量 ALIAS '报表访问量' COMMENT '一段时间内用户的报表访问次数' AGGREGATE 'GROUP BY'>], Dimensions=[<D_部门.部门名称>,<D_日期表.Date>], Values=[<D_部门='美术部'>,<D_部门='技术研发部'>,<部门='美术部'>,<部门='技术研发部'>]",
-        "sql": "EVALUATE SUMMARIZECOLUMNS(FILTER(VALUES('D_部门'[部门名称]), 'D_部门'[部门名称] IN {\"数据资产部\", \"审计部\"}), FILTER(VALUES('D_日期表'[Date]), 'D_日期表'[Date] >= DATEVALUE(\"2022/01/01\") && 'D_日期表'[Date] <= DATEVALUE(\"2022/11/06\")), \"报表访问量\", [报表访问量])"
+        "sql": "EVALUATE SUMMARIZECOLUMNS('D_部门'[部门名称],FILTER(VALUES('D_部门'[部门名称]), 'D_部门'[部门名称] IN {\"数据资产部\", \"审计部\"}), FILTER(VALUES('D_日期表'[Date]), 'D_日期表'[Date] >= DATEVALUE(\"2022/01/01\") && 'D_日期表'[Date] <= DATEVALUE(\"2022/11/06\")), \"报表访问量\", [报表访问量])"
     },
     {
         "question": "蓝海健康有限公司，蓝海科技有限公司管理费用是多少",
         "sideInfo": "CurrentDate=[2023-04-21]",
         "dbSchema": "DatabaseType=[SSAS], Table=[销售费用], PartitionTimeField=[DIM_Company.FCompanyName FORMAT 'yyyy-MM-dd'], Metrics=[<管理费用 COMMENT '管理费用' AGGREGATE 'GROUP BY'>], Dimensions=[<DIM_Company.FCompanyName>], Values=[<FCompanyName='蓝海健康有限公司'>,<FCompanyName='蓝海科技有限公司'>]",
-        "sql": "EVALUATE SUMMARIZECOLUMNS(FILTER(VALUES('DIM_Company'[FCompanyName]), 'DIM_Company'[FCompanyName] IN {\"蓝海健康有限公司\", \"蓝海科技有限公司\"}), \"管理费用\", [管理费用])"
+        "sql": "EVALUATE SUMMARIZECOLUMNS('DIM_Company'[FCompanyName],FILTER(VALUES('DIM_Company'[FCompanyName]), 'DIM_Company'[FCompanyName] IN {\"蓝海健康有限公司\", \"蓝海科技有限公司\"}), \"管理费用\", [管理费用])"
     },
     {
         "question": "销售额前三省份的库存周转率",
@@ -40,5 +40,11 @@
         "sideInfo": "CurrentDate=[2023-12-15]",
         "dbSchema": "DatabaseType=[SSAS], Table=[用户访问记录], PartitionTimeField=[D_日期表.Date FORMAT 'yyyy-MM-dd'], Metrics=[<访问次数 ALIAS 'visit_count' COMMENT '用户访问总次数' AGGREGATE 'COUNT'>], Dimensions=[<D_用户.用户类型>, <D_日期表.Date>], Values=[<D_用户='核心用户'>, <D_用户='普通用户'>]",
         "sql": "EVALUATE SUMMARIZECOLUMNS(FILTER(VALUES('D_用户'[用户类型]), 'D_用户'[用户类型] = \"核心用户\"), FILTER(VALUES('D_日期表'[Date]), 'D_日期表'[Date] >= DATE(2023,12,1) && 'D_日期表'[Date] <= DATE(2023,12,15)), \"总访问次数\", [访问次数])"
+    },
+    {
+        "question": "2020年到现在销售费用趋势是咋样的",
+        "sideInfo": "CurrentDate=[2025-06-21]",
+        "dbSchema": "DatabaseType=[SSAS], Table=[驾驶舱], PartitionTimeField=[D_日期表.Date FORMAT 'yyyy-MM-dd'], Metrics=[<销售费用 ALIAS '销售费用' COMMENT '销售费用' AGGREGATE 'SUM'>], Dimensions=[<D_日期表.Date>], Values=[]",
+        "sql": "EVALUATE SUMMARIZECOLUMNS('D_日期表'[Date],FILTER(VALUES('D_日期表'[Date]), 'D_日期表'[Date] >= DATE(2020, 1, 1)), \"销售费用\", [销售费用])"
     }
 ]

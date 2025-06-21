@@ -9,11 +9,14 @@ import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import com.alibaba.fastjson.JSONObject;
 import com.tencent.supersonic.common.pojo.ssas.TableColumnInfo;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.olap4j.*;
 import org.olap4j.driver.xmla.XmlaOlap4jDriver;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -107,9 +110,75 @@ public class SsasXmlaClientUtils {
         return response.body();
     }
 
-    public Map<String, Object> getDaxResult(String xmlaEndpoint, String daxQuery, String catalog) {
+    @SneakyThrows
+    /**
+     * 执行 DAX 查询并返回结果 AAS,PowerBI dataset
+     */
+    public List<Map<String, Object>> executeDaxByCloud(AsConnectInfo asConnectInfo, String restEndpoint) {
+        // 发送请求
+        log.info("开始执行查询：" + asConnectInfo.getQueryString());
+        HttpResponse response = HttpRequest.post(restEndpoint + "/TabularQuery/resultByDax")
+                .body(JSON.toJSONString(asConnectInfo), "application/json").execute();
+        JSONObject j = checkResponse(response);
+        String result = j.getString("data");
+        return parseXml2Map(result);
+    }
+
+    @NotNull
+    private static List<Map<String, Object>> parseXml2Map(String result) throws ParserConfigurationException, SAXException, IOException {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document doc = builder.parse(new InputSource(new StringReader(result)));
+        List<Map<String, Object>> resultList = new ArrayList<>();
+        NodeList elements = doc.getElementsByTagName("xsd:element");
+        // 1. 解析Schema获取字段映射
+        Map<String, String> fieldMapping = new HashMap<>();
+        for (int i = 0; i < elements.getLength();  i++) {
+            Element el = (Element) elements.item(i);
+            String techName = el.getAttribute("name");
+            String bizName = el.getAttribute("sql:field");
+            if (!bizName.isEmpty())  {
+                fieldMapping.put(techName,  bizName);
+            }
+        }
+
+        // 2. 解析实际数据
+        NodeList rows = doc.getElementsByTagName("row");
+        for (int i = 0; i < rows.getLength();  i++) {
+            Element row = (Element) rows.item(i);
+            NodeList cells = row.getChildNodes();
+
+            Map<String, Object> rowMap = new LinkedHashMap<>();
+            for (int j = 0; j < cells.getLength();  j++) {
+                if (cells.item(j) instanceof Element cell) {
+                    String techName = cell.getNodeName();
+                    String bizName = fieldMapping.get(techName);
+                    rowMap.put(bizName,  cell.getTextContent());//  存储业务名称
+                }
+            }
+            resultList.add(rowMap);
+        }
+        return resultList;
+    }
+
+    private JSONObject checkResponse(HttpResponse response) {
+        if (!response.isOk()) {
+            throw new BaseException("获取失败： 错误信息为：" + response.body());
+        }
+        String body = response.body();
+        JSONObject j = JSONObject.parseObject(body);
+        String status = j.getString("status");
+        if ("fail".equals(status)) {
+            log.error("请求错误：" + j.getString("message"));
+            throw new BaseException("请求数据失败,请重试或更换限定条件。");
+        }
+        return j;
+    }
+
+    @SneakyThrows
+    public List<Map<String, Object>> getDaxResult(String xmlaEndpoint, String daxQuery, String catalog) {
         String result = this.executeDax(xmlaEndpoint, daxQuery, catalog);
-        return parseFieldsAndValues(result);
+        return parseXml2Map(result);
     }
 
     public static Map<String, Object> parseFieldsAndValues(String xml) {
