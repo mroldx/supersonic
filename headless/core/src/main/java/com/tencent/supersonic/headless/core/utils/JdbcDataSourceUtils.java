@@ -2,13 +2,14 @@ package com.tencent.supersonic.headless.core.utils;
 
 import javax.sql.DataSource;
 
-import com.alibaba.druid.util.StringUtils;
+
 import com.tencent.supersonic.common.util.MD5Util;
 import com.tencent.supersonic.headless.api.pojo.enums.DataType;
 import com.tencent.supersonic.headless.api.pojo.response.DatabaseResp;
 import com.tencent.supersonic.headless.core.pojo.JdbcDataSource;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

@@ -47,11 +47,11 @@
 <!--            </exclusions>-->
 <!--        </dependency>-->
 
-        <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>druid</artifactId>
-            <version>${alibaba.druid.version}</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.alibaba</groupId>-->
+<!--            <artifactId>druid</artifactId>-->
+<!--            <version>${alibaba.druid.version}</version>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -281,6 +281,12 @@
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-http</artifactId>
             <version>5.8.6</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
+            <version>4.3.1</version>
         </dependency>
     </dependencies>
 

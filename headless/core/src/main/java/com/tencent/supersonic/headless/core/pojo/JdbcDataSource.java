@@ -1,9 +1,9 @@
 package com.tencent.supersonic.headless.core.pojo;
 
-import com.alibaba.druid.pool.DruidDataSource;
 import com.tencent.supersonic.headless.api.pojo.enums.DataType;
 import com.tencent.supersonic.headless.api.pojo.response.DatabaseResp;
 import com.tencent.supersonic.headless.core.utils.JdbcDataSourceUtils;
+import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +21,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class JdbcDataSource {
 
     private static final Object lockLock = new Object();
-    private static volatile Map<String, DruidDataSource> dataSourceMap = new ConcurrentHashMap<>();
+    private static volatile Map<String, HikariDataSource> dataSourceMap = new ConcurrentHashMap<>();
     private static volatile Map<String, Lock> dataSourceLockMap = new ConcurrentHashMap<>();
 
     @Value("${source.lock-time:30}")
@@ -118,9 +118,9 @@ public class JdbcDataSource {
         }
 
         try {
-            DruidDataSource druidDataSource = dataSourceMap.remove(key);
-            if (druidDataSource != null) {
-                druidDataSource.close();
+            HikariDataSource hikariDataSource = dataSourceMap.remove(key);
+            if (hikariDataSource != null) {
+                hikariDataSource.close();
             }
 
             dataSourceLockMap.remove(key);
@@ -129,7 +129,7 @@ public class JdbcDataSource {
         }
     }
 
-    public DruidDataSource getDataSource(DatabaseResp database) throws RuntimeException {
+    public HikariDataSource getDataSource(DatabaseResp database) throws RuntimeException {
 
         String name = database.getName();
         String jdbcUrl = database.getUrl();
@@ -138,18 +138,18 @@ public class JdbcDataSource {
 
         String key = getDataSourceKey(database);
 
-        DruidDataSource druidDataSource = dataSourceMap.get(key);
-        if (druidDataSource != null && !druidDataSource.isClosed()) {
-            return druidDataSource;
+        HikariDataSource hikariDataSource = dataSourceMap.get(key);
+        if (hikariDataSource != null && !hikariDataSource.isClosed()) {
+            return hikariDataSource;
         }
 
         Lock lock = getDataSourceLock(key);
 
         try {
             if (!lock.tryLock(lockTime, TimeUnit.SECONDS)) {
-                druidDataSource = dataSourceMap.get(key);
-                if (druidDataSource != null && !druidDataSource.isClosed()) {
-                    return druidDataSource;
+                hikariDataSource = dataSourceMap.get(key);
+                if (hikariDataSource != null && !hikariDataSource.isClosed()) {
+                    return hikariDataSource;
                 }
                 throw new RuntimeException("Unable to get datasource for jdbcUrl: " + jdbcUrl);
             }
@@ -157,13 +157,13 @@ public class JdbcDataSource {
             throw new RuntimeException("Unable to get datasource for jdbcUrl: " + jdbcUrl);
         }
 
-        druidDataSource = dataSourceMap.get(key);
-        if (druidDataSource != null && !druidDataSource.isClosed()) {
+        hikariDataSource = dataSourceMap.get(key);
+        if (hikariDataSource != null && !hikariDataSource.isClosed()) {
             lock.unlock();
-            return druidDataSource;
+            return hikariDataSource;
         }
 
-        druidDataSource = new DruidDataSource();
+        hikariDataSource = new HikariDataSource();
 
         try {
             String className = JdbcDataSourceUtils.getDriverClassName(jdbcUrl);
@@ -173,71 +173,59 @@ public class JdbcDataSource {
                 throw new RuntimeException("Unable to get driver instance for jdbcUrl: " + jdbcUrl);
             }
 
-            druidDataSource.setDriverClassName(className);
+            hikariDataSource.setDriverClassName(className);
+            hikariDataSource.setPoolName(name);
+            hikariDataSource.setJdbcUrl(jdbcUrl);
+            hikariDataSource.setUsername(username);
 
-            druidDataSource.setName(name);
-            druidDataSource.setUrl(jdbcUrl);
-            druidDataSource.setUsername(username);
-
-            if (!jdbcUrl.toLowerCase().contains(DataType.PRESTO.getFeature())) {
-                druidDataSource.setPassword(password);
+            if (!jdbcUrl.toLowerCase().contains(DataType.PRESTO.getFeature()))  {
+                hikariDataSource.setPassword(password);
             }
 
-            druidDataSource.setInitialSize(initialSize);
-            druidDataSource.setMinIdle(minIdle);
-            druidDataSource.setMaxActive(maxActive);
-            druidDataSource.setMaxWait(maxWait);
-            druidDataSource.setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis);
-            druidDataSource.setMinEvictableIdleTimeMillis(minEvictableIdleTimeMillis);
-            druidDataSource.setMaxEvictableIdleTimeMillis(maxEvictableIdleTimeMillis);
-            druidDataSource.setTimeBetweenConnectErrorMillis(timeBetweenConnectErrorMillis);
-            druidDataSource.setTestWhileIdle(testWhileIdle);
-            druidDataSource.setTestOnBorrow(testOnBorrow);
-            druidDataSource.setTestOnReturn(testOnReturn);
-            druidDataSource.setConnectionErrorRetryAttempts(connectionErrorRetryAttempts);
-            druidDataSource.setBreakAfterAcquireFailure(breakAfterAcquireFailure);
-            druidDataSource.setKeepAlive(keepAlive);
-            druidDataSource.setValidationQueryTimeout(validationQueryTimeout);
-            druidDataSource.setRemoveAbandoned(true);
-            druidDataSource.setRemoveAbandonedTimeout(3600 + 5 * 60);
-            druidDataSource.setLogAbandoned(true);
+            // 连接池大小配置
+            hikariDataSource.setMaximumPoolSize(maxActive);
+            hikariDataSource.setMinimumIdle(minIdle);
 
-            // default validation query
-            String driverName = druidDataSource.getDriverClassName();
-            if (driverName.indexOf("sqlserver") != -1 || driverName.indexOf("mysql") != -1
-                    || driverName.indexOf("h2") != -1 || driverName.indexOf("moonbox") != -1) {
-                druidDataSource.setValidationQuery("select 1");
+            // 超时配置
+            hikariDataSource.setConnectionTimeout(maxWait);
+            hikariDataSource.setIdleTimeout(minEvictableIdleTimeMillis);
+            hikariDataSource.setValidationTimeout(validationQueryTimeout  * 1000L);
+
+            // 泄漏检测
+            hikariDataSource.setLeakDetectionThreshold(3600  * 1000 + 5 * 60 * 1000);
+
+            // 验证查询
+            String driverName = className.toLowerCase();
+
+            if (driverName.contains("sqlserver")  || driverName.contains("mysql")
+                    || driverName.contains("h2")  || driverName.contains("moonbox"))  {
+                hikariDataSource.setConnectionTestQuery("select  1");
+            } else if (driverName.contains("oracle"))  {
+                hikariDataSource.setConnectionTestQuery("select  1 from dual");
             }
 
-            if (driverName.indexOf("oracle") != -1) {
-                druidDataSource.setValidationQuery("select 1 from dual");
+            // MySQL 特定配置
+            if (driverName.contains("mysql"))  {
+                hikariDataSource.addDataSourceProperty("cachePrepStmts",  "true");
+                hikariDataSource.addDataSourceProperty("prepStmtCacheSize",  "250");
+                hikariDataSource.addDataSourceProperty("prepStmtCacheSqlLimit",  "2048");
+                hikariDataSource.addDataSourceProperty("useServerPrepStmts",  "true");
             }
 
-            if (driverName.indexOf("elasticsearch") != -1) {
-                druidDataSource.setValidationQuery(null);
-            }
+//            try {
+//                hikariDataSource.init();
+//            } catch (Exception e) {
+//                log.error("Exception during pool initialization", e);
+//                throw new RuntimeException(e.getMessage());
+//            }
 
-            Properties properties = new Properties();
-            if (driverName.indexOf("mysql") != -1) {
-                properties.setProperty("druid.mysql.usePingMethod", "false");
-            }
-
-            druidDataSource.setConnectProperties(properties);
-
-            try {
-                druidDataSource.init();
-            } catch (Exception e) {
-                log.error("Exception during pool initialization", e);
-                throw new RuntimeException(e.getMessage());
-            }
-
-            dataSourceMap.put(key, druidDataSource);
+            dataSourceMap.put(key, hikariDataSource);
 
         } finally {
             lock.unlock();
         }
 
-        return druidDataSource;
+        return hikariDataSource;
     }
 
     private String getDataSourceKey(DatabaseResp database) {
