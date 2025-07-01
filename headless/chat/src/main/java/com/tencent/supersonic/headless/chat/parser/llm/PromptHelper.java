@@ -183,7 +183,7 @@ public class PromptHelper {
         llmReq.getSchema().getMetrics().forEach(metric -> {
             StringBuilder metricStr = new StringBuilder();
             metricStr.append("<");
-            metricStr.append(metric.getName());
+            metricStr.append(metric.getBizName());
             if (!CollectionUtils.isEmpty(metric.getAlias())) {
                 StringBuilder alias = new StringBuilder();
                 metric.getAlias().forEach(a -> alias.append(a).append(","));
