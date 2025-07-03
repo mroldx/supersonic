@@ -75,7 +75,7 @@ public class OnePassSCDaxGenStrategy extends SqlGenStrategy {
         LLMResp llmResp = new LLMResp();
         llmResp.setQuery(llmReq.getQueryText());
         // 1.recall exemplars
-        log.debug("OnePassSCDaxGenStrategy llmReq:\n{}", llmReq);
+        //log.debug("OnePassSCDaxGenStrategy llmReq:\n{}", llmReq);
         List<List<Text2SQLExemplar>> exemplarsList = promptHelper.getFewShotExemplars(llmReq);
 
         // 2.generate sql generation prompt for each self-consistency inference
@@ -98,7 +98,7 @@ public class OnePassSCDaxGenStrategy extends SqlGenStrategy {
         prompt2Exemplar.keySet().parallelStream().forEach(prompt -> {
             SemanticDax s2Dax = extractor.generateSemanticDax(prompt.toUserMessage().singleText());
             output2Prompt.put(s2Dax.getDax(), prompt);
-            daxPipelineLog.info("OnePassSCDaxGenStrategy modelReq:\n{} \nmodelResp:\n{}",
+            daxPipelineLog.debug("OnePassSCDaxGenStrategy modelReq:\n{} \nmodelResp:\n{}",
                     prompt.text(), s2Dax);
             daxPipelineLog.info("OnePassSCDaxGenStrategy thought:\n{}", s2Dax.getThought());
         });
@@ -123,6 +123,7 @@ public class OnePassSCDaxGenStrategy extends SqlGenStrategy {
             exemplars.append(exemplarStr);
         }
         String dataSemantics = promptHelper.buildDaxSchemaStr(llmReq);
+        log.info("-----------------------dax llm schema: \n {}", dataSemantics);
         String sideInformation = promptHelper.buildSideInformation(llmReq);
         llmResp.setSchema(dataSemantics);
         llmResp.setSideInfo(sideInformation);
