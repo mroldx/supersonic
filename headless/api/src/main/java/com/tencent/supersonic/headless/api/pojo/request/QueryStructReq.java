@@ -142,6 +142,23 @@ public class QueryStructReq extends SemanticQueryReq {
         return result;
     }
 
+    public QueryDaxReq convert2Dax(boolean isBizName) {
+        String sql = null;
+        try {
+            sql = buildSql(this, isBizName);
+        } catch (JSQLParserException e) {
+            log.error("buildSql error", e);
+        }
+
+        QueryDaxReq result = new QueryDaxReq();
+        result.setSql(sql);
+        result.setDataSetId(this.getDataSetId());
+        result.setModelIds(this.getModelIdSet());
+        result.setParams(new ArrayList<>());
+        result.getSqlInfo().setCorrectedS2SQL(sql);
+        return result;
+    }
+
     private String buildSql(QueryStructReq queryStructReq, boolean isBizName)
             throws JSQLParserException {
         ParenthesedSelect select = new ParenthesedSelect();

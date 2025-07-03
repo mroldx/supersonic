@@ -6,10 +6,7 @@ import com.tencent.supersonic.common.util.BeanMapper;
 import com.tencent.supersonic.common.util.JsonUtil;
 import com.tencent.supersonic.headless.api.pojo.Dimension;
 import com.tencent.supersonic.headless.api.pojo.ItemValueConfig;
-import com.tencent.supersonic.headless.api.pojo.request.DictItemReq;
-import com.tencent.supersonic.headless.api.pojo.request.QuerySqlReq;
-import com.tencent.supersonic.headless.api.pojo.request.QueryStructReq;
-import com.tencent.supersonic.headless.api.pojo.request.SemanticQueryReq;
+import com.tencent.supersonic.headless.api.pojo.request.*;
 import com.tencent.supersonic.headless.api.pojo.response.*;
 import com.tencent.supersonic.headless.server.facade.service.SemanticLayerService;
 import com.tencent.supersonic.headless.server.persistence.dataobject.DictConfDO;
@@ -132,29 +129,51 @@ public class DictUtils {
         return dictItemResp;
     }
 
+    /**
+     * 查询字典值 返回格式 值+nature+频次
+     * 
+     * @param dictItemResp
+     * @return
+     */
     public List<String> fetchItemValue(DictItemResp dictItemResp) {
         List<String> lines = new ArrayList<>();
         SemanticQueryReq semanticQueryReq = constructQueryReq(dictItemResp);
         semanticQueryReq.setNeedAuth(false);
         String bizName = dictItemResp.getBizName();
+        String nature = dictItemResp.getNature();
         try {
             SemanticQueryResp semanticQueryResp = queryService.queryByReq(semanticQueryReq, null);
             if (Objects.isNull(semanticQueryResp)
                     || CollectionUtils.isEmpty(semanticQueryResp.getResultList())) {
                 return lines;
             }
+
+            int lineSize = 2;
+
+            // dax需要转换map key
+            if (semanticQueryReq instanceof QueryDaxReq) {
+                bizName = wrapDaxMapKey(bizName);
+                lineSize = 1;
+            }
             Map<String, Long> valueAndFrequencyPair = new HashMap<>(2000);
             for (Map<String, Object> line : semanticQueryResp.getResultList()) {
 
                 if (CollectionUtils.isEmpty(line) || !line.containsKey(bizName)
-                        || line.get(bizName) == null || line.size() != 2) {
+                        || line.get(bizName) == null || line.size() != lineSize) {
                     continue;
                 }
                 String dimValue = line.get(bizName).toString();
                 Object metricObject = null;
                 for (String key : line.keySet()) {
-                    if (!bizName.equalsIgnoreCase(key)) {
-                        metricObject = line.get(key);
+                    // count(1),xxxxx
+                    if (line.size() == lineSize) {
+                        if (!bizName.equalsIgnoreCase(key)) {
+                            // 值频次 count(1)
+                            metricObject = line.get(key);
+                        }
+                    }
+                    if (line.size() == lineSize) {
+                        metricObject = 1;
                     }
                 }
                 if (!StringUtils.isEmpty(dimValue) && Objects.nonNull(metricObject)) {
@@ -162,7 +181,6 @@ public class DictUtils {
                     mergeMultivaluedValue(valueAndFrequencyPair, dimValue, metric);
                 }
             }
-            String nature = dictItemResp.getNature();
             constructDictLines(valueAndFrequencyPair, lines, nature);
             addWhiteValueLines(dictItemResp, lines, nature);
         } catch (Exception e) {
@@ -199,6 +217,13 @@ public class DictUtils {
         });
     }
 
+    /**
+     * 将多值维度拆分成单个值并分别累加频次
+     * 
+     * @param valueAndFrequencyPair
+     * @param dimValue
+     * @param metric
+     */
     private void mergeMultivaluedValue(Map<String, Long> valueAndFrequencyPair, String dimValue,
             Long metric) {
         if (StringUtils.isEmpty(dimValue)) {
@@ -221,6 +246,12 @@ public class DictUtils {
     }
 
     private SemanticQueryReq constructQueryReq(DictItemResp dictItemResp) {
+
+        if (TypeEnums.DIMENSION.equals(dictItemResp.getType())
+                && dictItemResp.getBizName().contains(".")) {
+            return constructDimDaxQueryReq(dictItemResp);
+        }
+
         if (TypeEnums.DIMENSION.equals(dictItemResp.getType())) {
             return constructDimQueryReq(dictItemResp);
         }
@@ -271,8 +302,17 @@ public class DictUtils {
         return constructQuerySqlReq(dictItemResp);
     }
 
-    private QuerySqlReq constructQuerySqlReq(DictItemResp dictItemResp) {
+    private QueryDaxReq constructDimDaxQueryReq(DictItemResp dictItemResp) {
+        if (Objects.nonNull(dictItemResp) && Objects.nonNull(dictItemResp.getConfig())
+                && Objects.nonNull(dictItemResp.getConfig().getMetricId())) {
+            // 查询默认指标
+            QueryStructReq queryStructReq = generateQueryStruct(dictItemResp);
+            return queryStructReq.convert2Dax(true);
+        }
+        return constructQueryDaxReq(dictItemResp);
+    }
 
+    private QuerySqlReq constructQuerySqlReq(DictItemResp dictItemResp) {
         ModelResp model = modelService.getModel(dictItemResp.getModelId());
         String sqlPattern =
                 "select %s,count(1) from %s %s group by %s order by count(1) desc limit %d";
@@ -297,6 +337,44 @@ public class DictUtils {
         querySqlReq.setModelIds(modelIds);
 
         return querySqlReq;
+    }
+
+    private QueryDaxReq constructQueryDaxReq(DictItemResp dictItemResp) {
+        String dimBizName = dictItemResp.getBizName();
+        ItemValueConfig config = dictItemResp.getConfig();
+        long limit =
+                (Objects.isNull(config) || Objects.isNull(config.getLimit())) ? itemValueMaxCount
+                        : dictItemResp.getConfig().getLimit();
+        if (limit <= 0) {
+            limit = Integer.MAX_VALUE;
+        }
+        // 生成DAX语句，按该列升序排序
+        String dax = String.format("EVALUATE TOPN(%d, SUMMARIZECOLUMNS(%s), %s, ASC)", limit,
+                wrapDaxColumn(dimBizName), wrapDaxColumn(dimBizName));
+
+        QueryDaxReq queryDaxReq = new QueryDaxReq();
+        queryDaxReq.setSql(dax);
+        queryDaxReq.setNeedAuth(false);
+        Set<Long> modelIds = new HashSet<>();
+        modelIds.add(dictItemResp.getModelId());
+        queryDaxReq.setModelIds(modelIds);
+        return queryDaxReq;
+    }
+
+    private String wrapDaxColumn(String bizName) {
+        String[] parts = bizName.split("\\.");
+        if (parts.length == 2) {
+            return String.format("'%s'[%s]", parts[0], parts[1]);
+        }
+        return bizName;
+    }
+
+    private String wrapDaxMapKey(String bizName) {
+        String[] parts = bizName.split("\\.");
+        if (parts.length == 2) {
+            return String.format("%s[%s]", parts[0], parts[1]);
+        }
+        return bizName;
     }
 
     private QueryStructReq generateQueryStruct(DictItemResp dictItemResp) {
