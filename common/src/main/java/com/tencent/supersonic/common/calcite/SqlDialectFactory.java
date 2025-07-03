@@ -50,6 +50,7 @@ public class SqlDialectFactory {
         sqlDialectMap.put(EngineType.PRESTO, new SemanticSqlDialect(PRESTO_CONTEXT));
         sqlDialectMap.put(EngineType.TRINO, new SemanticSqlDialect(PRESTO_CONTEXT));
         sqlDialectMap.put(EngineType.SSAS, new SemanticSqlDialect(DEFAULT_CONTEXT));
+        sqlDialectMap.put(EngineType.POWERBI, new SemanticSqlDialect(DEFAULT_CONTEXT));
     }
 
     public static SemanticSqlDialect getSqlDialect(EngineType engineType) {

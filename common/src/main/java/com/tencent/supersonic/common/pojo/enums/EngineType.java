@@ -17,7 +17,7 @@ public enum EngineType {
 
     SSAS(14, "SSAS"),
 
-    POWERBI(14, " POWERBI-SEMANTICMODEL");
+    POWERBI(15, " POWERBI-SEMANTICMODEL");
 
     private Integer code;
 
