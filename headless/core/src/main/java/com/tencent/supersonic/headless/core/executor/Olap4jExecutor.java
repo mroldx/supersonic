@@ -11,9 +11,11 @@ import com.tencent.supersonic.headless.core.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -37,7 +39,7 @@ public class Olap4jExecutor implements QueryExecutor {
         DatabaseResp database = queryStatement.getOntology().getDatabase();
         SemanticQueryResp queryResultWithColumns = new SemanticQueryResp();
         try {
-            //多行存储  k v
+            // 多行存储 k v
             List<Map<String, Object>> resultInfos = null;
             if (!database.getUrl().contains("http")) {
                 AsConnectInfo asConnectInfo = new AsConnectInfo();
@@ -48,21 +50,33 @@ public class Olap4jExecutor implements QueryExecutor {
                 asConnectInfo.setDbName(database.getName());
                 asConnectInfo.setGroupName(database.getDatabase());
                 asConnectInfo.setQueryString(sql);
-                resultInfos =
-                        sqlUtils.executeDaxByCloud(asConnectInfo, aas_restapi);
+                resultInfos = sqlUtils.executeDaxByCloud(asConnectInfo, aas_restapi);
             } else {
                 resultInfos = sqlUtils.getDaxResult(database.getUrl(), sql, database.getName());
             }
 
             List<QueryColumn> queryColumns = new ArrayList<>();
-            for (String key : resultInfos.get(0).keySet()) {
+            boolean isNull = CollectionUtils.isEmpty(resultInfos);
+            if (!isNull) {
+                for (String key : resultInfos.get(0).keySet()) {
+                    QueryColumn queryColumn = new QueryColumn();
+                    queryColumn.setName(key);
+                    queryColumn.setBizName(key);
+                    queryColumn.setType("String");
+                    queryColumns.add(queryColumn);
+                }
+                queryResultWithColumns.setColumns(queryColumns);
+            } else {
                 QueryColumn queryColumn = new QueryColumn();
-                queryColumn.setName(key);
-                queryColumn.setBizName(key);
+                queryColumn.setName("查询结果");
+                queryColumn.setBizName("查询结果");
                 queryColumn.setType("String");
                 queryColumns.add(queryColumn);
+                resultInfos = new ArrayList<>();
+                Map<String, Object> resultInfo = new HashMap<>();
+                resultInfo.put("查询结果", "0");
+                resultInfos.add(resultInfo);
             }
-            queryResultWithColumns.setColumns(queryColumns);
             queryResultWithColumns.setResultList(resultInfos);
             queryResultWithColumns.setSql(sql);
         } catch (Exception e) {
