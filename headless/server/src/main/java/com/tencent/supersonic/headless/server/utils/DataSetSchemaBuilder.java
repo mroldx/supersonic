@@ -113,6 +113,26 @@ public class DataSetSchemaBuilder {
                 String timeFormat =
                         String.valueOf(dim.getExt().get(DimensionConstants.DIMENSION_TIME_FORMAT));
                 setDefaultTimeFormat(dimToAdd, dim.getTypeParams(), timeFormat);
+
+                // 设置年，月，日，季等格式数据
+                if (dim.getBizName() != null && dim.getBizName().contains(".")) {
+                    String timeFormatByYear = String.valueOf(
+                            dim.getExt().get(DimensionConstants.DIMENSION_TIME_FORMAT_YYYY));
+                    dimToAdd.getExtInfo().put(DimensionConstants.DIMENSION_TIME_FORMAT_YYYY,
+                            timeFormatByYear);
+                    String timeFormatByMonth = String.valueOf(
+                            dim.getExt().get(DimensionConstants.DIMENSION_TIME_FORMAT_YYYY_MM));
+                    dimToAdd.getExtInfo().put(DimensionConstants.DIMENSION_TIME_FORMAT_YYYY_MM,
+                            timeFormatByMonth);
+                    String timeFormatByDay = String.valueOf(
+                            dim.getExt().get(DimensionConstants.DIMENSION_TIME_FORMAT_YYYY_MM_DD));
+                    dimToAdd.getExtInfo().put(DimensionConstants.DIMENSION_TIME_FORMAT_YYYY_MM_DD,
+                            timeFormatByDay);
+                    // String timeFormatByQuarter =
+                    // String.valueOf(dim.getExt().get(DimensionConstants.DIMENSION_TIME_FORMAT_YYYY_MM_DD_QUARTER));
+                    // dimToAdd.getExtInfo().put(DimensionConstants.DIMENSION_TIME_FORMAT_YYYY_MM_DD_QUARTER,
+                    // timeFormatByQuarter);
+                }
             }
             dimensions.add(dimToAdd);
         }

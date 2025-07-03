@@ -64,31 +64,45 @@ public class LLMRequestService {
         String queryText = queryCtx.getRequest().getQueryText();
         // 构建 LLM 模式（LLMSchema）
         LLMReq.LLMSchema llmSchema = new LLMReq.LLMSchema();
-        int fieldCntThreshold =
-                Integer.parseInt(parserConfig.getParameterValue(PARSER_FIELDS_COUNT_THRESHOLD));
-        if (queryCtx.getMapInfo().getMatchedElements(dataSetId).size() <= fieldCntThreshold) {
-            log.info("Matched elements count is less than threshold, size:"
-                    +queryCtx.getMapInfo().getMatchedElements(dataSetId).size()+",PARSER_FIELDS_COUNT_THRESHOLD:"+fieldCntThreshold);
-            // 如果匹配的字段数量小于阈值，则使用完整的指标和维度
-            llmSchema.setMetrics(queryCtx.getSemanticSchema().getMetrics().stream().distinct().collect(Collectors.toList()));
-            llmSchema.setDimensions(queryCtx.getSemanticSchema().getDimensions().stream().distinct().collect(Collectors.toList()));
-        } else {
-            // 否则，使用映射的指标和维度
-            llmSchema.setMetrics(getMappedMetrics(queryCtx, dataSetId));
-            llmSchema.setDimensions(getMappedDimensions(queryCtx, dataSetId));
-        }
-        // 构建 LLM 请求对象
-        LLMReq llmReq = new LLMReq();
-        llmReq.setQueryText(queryText);
-        llmReq.setSchema(llmSchema);
         Pair<String, String> databaseInfo = getDatabaseType(queryCtx, dataSetId);
         llmSchema.setDatabaseType(databaseInfo.first);
-        llmSchema.setDatabaseVersion(databaseInfo.second);
         // 判断是否切换dax解析
         if (llmSchema.getDatabaseType().equals("SSAS")
                 || llmSchema.getDatabaseType().equals("PowerBI-SemanticModel")) {
             llmSchema.setSSAS(true);
         }
+        int fieldCntThreshold =
+                Integer.parseInt(parserConfig.getParameterValue(PARSER_FIELDS_COUNT_THRESHOLD));
+        if (queryCtx.getMapInfo().getMatchedElements(dataSetId).size() <= fieldCntThreshold) {
+            log.info("Matched elements count is less than threshold, size:"
+                    + queryCtx.getMapInfo().getMatchedElements(dataSetId).size()
+                    + ",PARSER_FIELDS_COUNT_THRESHOLD:" + fieldCntThreshold);
+            // 如果匹配的字段数量小于阈值，则使用完整的指标和维度
+            llmSchema.setMetrics(queryCtx.getSemanticSchema().getMetrics().stream().distinct()
+                    .collect(Collectors.toList()));
+            llmSchema.setDimensions(queryCtx.getSemanticSchema().getDimensions().stream().distinct()
+                    .collect(Collectors.toList()));
+        } else {
+            // 否则，使用映射的指标和维度
+            llmSchema.setMetrics(getMappedMetrics(queryCtx, dataSetId));
+            // 先获取原有的dimension
+            List<SchemaElement> mappedDimensions = getMappedDimensions(queryCtx, dataSetId);
+            if(llmSchema.isSSAS()) {
+                // SSAS新增：把type为VALUE的元素也加入dimension
+                List<SchemaElementMatch> matchedElements = queryCtx.getMapInfo().getMatchedElements(dataSetId);
+                for (SchemaElementMatch match : matchedElements) {
+                    if (match.getElement().getType() == SchemaElementType.VALUE && !mappedDimensions.contains(match.getElement())) {
+                        mappedDimensions.add(match.getElement());
+                    }
+                }
+            }
+            llmSchema.setDimensions(mappedDimensions);
+        }
+        // 构建 LLM 请求对象
+        LLMReq llmReq = new LLMReq();
+        llmReq.setQueryText(queryText);
+        llmReq.setSchema(llmSchema);
+        llmSchema.setDatabaseVersion(databaseInfo.second);
         llmSchema.setDataSetId(dataSetId);
         llmSchema.setDataSetName(dataSetIdToName.get(dataSetId));
         llmSchema.setPartitionTime(getPartitionTime(queryCtx, dataSetId));
@@ -213,18 +227,35 @@ public class LLMRequestService {
         if (CollectionUtils.isEmpty(matchedElements)) {
             return new ArrayList<>();
         }
-        Set<LLMReq.ElementValue> valueMatches = matchedElements.stream()
+        // 判断是否为SSAS解析
+        boolean isSSAS;
+        if (queryCtx.getSemanticSchema() != null && queryCtx.getSemanticSchema().getDataSetSchemaMap() != null) {
+            DataSetSchema dataSetSchema = queryCtx.getSemanticSchema().getDataSetSchemaMap().get(dataSetId);
+            if (dataSetSchema != null &&
+                ("SSAS".equalsIgnoreCase(dataSetSchema.getDatabaseType()) ||
+                 "PowerBI-SemanticModel".equalsIgnoreCase(dataSetSchema.getDatabaseType()))) {
+                isSSAS = true;
+            } else {
+                isSSAS = false;
+            }
+        } else {
+            isSSAS = false;
+        }
+        return matchedElements.stream()
                 .filter(elementMatch -> !elementMatch.isInherited()).filter(schemaElementMatch -> {
                     SchemaElementType type = schemaElementMatch.getElement().getType();
                     return SchemaElementType.VALUE.equals(type)
                             || SchemaElementType.ID.equals(type);
                 }).map(elementMatch -> {
                     LLMReq.ElementValue elementValue = new LLMReq.ElementValue();
-                    elementValue.setFieldName(elementMatch.getElement().getName());
+                    if (isSSAS) {
+                        elementValue.setFieldName(elementMatch.getElement().getBizName());
+                    } else {
+                        elementValue.setFieldName(elementMatch.getElement().getName());
+                    }
                     elementValue.setFieldValue(elementMatch.getWord());
                     return elementValue;
-                }).collect(Collectors.toSet());
-        return new ArrayList<>(valueMatches);
+                }).distinct().collect(Collectors.toList());
     }
 
     /**

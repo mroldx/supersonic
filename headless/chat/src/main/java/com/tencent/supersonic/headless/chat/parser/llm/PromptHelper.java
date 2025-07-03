@@ -1,6 +1,7 @@
 package com.tencent.supersonic.headless.chat.parser.llm;
 
 import com.google.common.collect.Lists;
+import com.tencent.supersonic.common.pojo.DimensionConstants;
 import com.tencent.supersonic.common.pojo.Text2SQLExemplar;
 import com.tencent.supersonic.common.pojo.enums.DataFormatTypeEnum;
 import com.tencent.supersonic.common.pojo.enums.EngineType;
@@ -17,6 +18,7 @@ import org.springframework.util.CollectionUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static com.tencent.supersonic.headless.chat.parser.ParserConfig.*;
@@ -151,7 +153,10 @@ public class PromptHelper {
         if (llmReq.getSchema().getPartitionTime() != null) {
             partitionTimeStr =
                     String.format("%s FORMAT '%s'", llmReq.getSchema().getPartitionTime().getName(),
-                            llmReq.getSchema().getPartitionTime().getTimeFormat()==null?"yyyy-mm-dd":llmReq.getSchema().getPartitionTime().getTimeFormat());
+                            llmReq.getSchema().getPartitionTime().getTimeFormat() == null
+                                    ? "yyyy-mm-dd"
+                                    : llmReq.getSchema().getPartitionTime().getTimeFormat());
+
         }
 
         String primaryKeyStr = "";
@@ -238,10 +243,32 @@ public class PromptHelper {
         }
 
         String partitionTimeStr = "";
+        Map<String, Object> extInfo = null;
         if (llmReq.getSchema().getPartitionTime() != null) {
-            partitionTimeStr =
-                    String.format("%s FORMAT '%s'", llmReq.getSchema().getPartitionTime().getName(),
-                            llmReq.getSchema().getPartitionTime().getTimeFormat());
+            extInfo = llmReq.getSchema().getPartitionTime().getExtInfo();
+        }
+        // else if (!llmReq.getSchema().getDimensions().isEmpty()) {
+        // // 兼容部分场景，取第一个dimension的extInfo
+        // extInfo = llmReq.getSchema().getDimensions().get(0).getExtInfo();
+        // }
+        if (extInfo != null) {
+            // 按顺序遍历key-格式
+            String[][] timeFormats =
+                    {{DimensionConstants.DIMENSION_TIME_FORMAT_YYYY_MM_DD, "yyyy-MM-dd"},
+                                    {DimensionConstants.DIMENSION_TIME_FORMAT_YYYY, "yyyy"},
+                                    {DimensionConstants.DIMENSION_TIME_FORMAT_YYYY_MM, "yyyy-MM"},};
+            List<String> partitionTimeFields = Lists.newArrayList();
+            for (String[] pair : timeFormats) {
+                String key = pair[0];
+                String format = pair[1];
+                Object value = extInfo.get(key);
+                if (value != null && StringUtils.isNotEmpty(value.toString())) {
+                    partitionTimeFields.add(String.format("<%s FORMAT '%s'>", value, format));
+                }
+            }
+            if (!partitionTimeFields.isEmpty()) {
+                partitionTimeStr = String.join(",", partitionTimeFields);
+            }
         }
 
         String primaryKeyStr = "";
