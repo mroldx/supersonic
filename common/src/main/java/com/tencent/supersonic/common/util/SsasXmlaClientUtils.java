@@ -4,6 +4,8 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.date.TimeInterval;
 import cn.hutool.core.text.split.SplitIter;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
@@ -60,18 +62,22 @@ public class SsasXmlaClientUtils {
     /**
      * 执行 DAX 查询并返回结果 AAS,PowerBI dataset
      */
-    public List<Map<String, Object>> executeDaxByCloud(AsConnectInfo asConnectInfo, String restEndpoint) {
+    public List<Map<String, Object>> executeDaxByCloud(AsConnectInfo asConnectInfo,
+            String restEndpoint) {
         // 发送请求
+        TimeInterval timer = DateUtil.timer();
         log.info("开始执行查询：" + asConnectInfo.getQueryString());
         HttpResponse response = HttpRequest.post(restEndpoint + "/TabularQuery/resultByDax")
                 .body(JSON.toJSONString(asConnectInfo), "application/json").execute();
+        log.info("查询耗时：" + timer.interval() + "ms");
         JSONObject j = checkResponse(response);
         String result = j.getString("data");
         return parseXml2Map(result);
     }
 
     @NotNull
-    private static List<Map<String, Object>> parseXml2Map(String result) throws ParserConfigurationException, SAXException, IOException {
+    private static List<Map<String, Object>> parseXml2Map(String result)
+            throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document doc = builder.parse(new InputSource(new StringReader(result)));
@@ -79,27 +85,27 @@ public class SsasXmlaClientUtils {
         NodeList elements = doc.getElementsByTagName("xsd:element");
         // 1. 解析Schema获取字段映射
         Map<String, String> fieldMapping = new HashMap<>();
-        for (int i = 0; i < elements.getLength();  i++) {
+        for (int i = 0; i < elements.getLength(); i++) {
             Element el = (Element) elements.item(i);
             String techName = el.getAttribute("name");
             String bizName = el.getAttribute("sql:field");
-            if (!bizName.isEmpty())  {
-                fieldMapping.put(techName,  bizName);
+            if (!bizName.isEmpty()) {
+                fieldMapping.put(techName, bizName);
             }
         }
 
         // 2. 解析实际数据
         NodeList rows = doc.getElementsByTagName("row");
-        for (int i = 0; i < rows.getLength();  i++) {
+        for (int i = 0; i < rows.getLength(); i++) {
             Element row = (Element) rows.item(i);
             NodeList cells = row.getChildNodes();
 
             Map<String, Object> rowMap = new LinkedHashMap<>();
-            for (int j = 0; j < cells.getLength();  j++) {
-                if (cells.item(j) instanceof Element cell) {
+            for (int j = 0; j < cells.getLength(); j++) {
+                if (cells.item(j)instanceof Element cell) {
                     String techName = cell.getNodeName();
                     String bizName = fieldMapping.get(techName);
-                    rowMap.put(bizName,  cell.getTextContent());//  存储业务名称
+                    rowMap.put(bizName, cell.getTextContent());// 存储业务名称
                 }
             }
             resultList.add(rowMap);
@@ -122,7 +128,8 @@ public class SsasXmlaClientUtils {
     }
 
     @SneakyThrows
-    public List<Map<String, Object>> getDaxResult(String xmlaEndpoint, String daxQuery, String catalog) {
+    public List<Map<String, Object>> getDaxResult(String xmlaEndpoint, String daxQuery,
+            String catalog) {
         String result = this.executeDax(xmlaEndpoint, daxQuery, catalog);
         return parseXml2Map(result);
     }
