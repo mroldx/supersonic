@@ -351,7 +351,7 @@ const ChatMsg: React.FC<Props> = ({
     entityName !== undefined;
 
   const existDrillDownDimension =
-    queryMode.includes('METRIC') &&
+  (queryMode.includes('METRIC') || queryMode === 'LLM_S2SQL')&&
     getMsgContentType() !== MsgContentTypeEnum.TEXT &&
     !isEntityMode;
 
