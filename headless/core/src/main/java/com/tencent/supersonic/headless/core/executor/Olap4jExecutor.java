@@ -4,20 +4,19 @@ import com.tencent.supersonic.common.pojo.QueryColumn;
 import com.tencent.supersonic.common.pojo.ssas.AsConnectInfo;
 import com.tencent.supersonic.common.pojo.ssas.DaxResultInfo;
 import com.tencent.supersonic.common.util.SsasXmlaClientUtils;
+import com.tencent.supersonic.headless.api.pojo.enums.SemanticType;
 import com.tencent.supersonic.headless.api.pojo.response.DatabaseResp;
 import com.tencent.supersonic.headless.api.pojo.response.SemanticQueryResp;
 import com.tencent.supersonic.headless.core.pojo.QueryStatement;
 import com.tencent.supersonic.headless.core.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.ResultSetMetaData;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component("Olap4jExecutor")
@@ -58,13 +57,18 @@ public class Olap4jExecutor implements QueryExecutor {
             List<QueryColumn> queryColumns = new ArrayList<>();
             boolean isNull = CollectionUtils.isEmpty(resultInfos);
             if (!isNull) {
-                for (String key : resultInfos.get(0).keySet()) {
+                resultInfos = convertQueryResult(resultInfos);
+                //获取list里面map最多的key
+                int maxKeyLength = resultInfos.stream().map(Map::size).max(Integer::compareTo).orElse(0);
+                for (String key : resultInfos.get(maxKeyLength).keySet()) {
                     QueryColumn queryColumn = new QueryColumn();
                     queryColumn.setName(key);
                     queryColumn.setBizName(key);
                     queryColumn.setType("String");
                     queryColumns.add(queryColumn);
                 }
+                //给最后一列的showType设置为number
+                queryColumns.get(queryColumns.size() - 1).setShowType(SemanticType.NUMBER.name());
                 queryResultWithColumns.setColumns(queryColumns);
             } else {
                 QueryColumn queryColumn = new QueryColumn();
@@ -84,5 +88,36 @@ public class Olap4jExecutor implements QueryExecutor {
             queryResultWithColumns.setErrorMsg(e.getMessage());
         }
         return queryResultWithColumns;
+    }
+
+    @NotNull
+    private List<Map<String, Object>> convertQueryResult(List<Map<String, Object>> resultInfos) {
+        resultInfos = resultInfos.stream().map(resultInfo -> {
+            Map<String, Object> newResultInfo = new LinkedHashMap<>();
+            for (String key : resultInfo.keySet()) {
+                // 判断第一个字符是否[开头
+                if (key.charAt(0) != '[') {
+                    newResultInfo.put(convertColumn(key), resultInfo.get(key));
+                } else {
+                    newResultInfo.put(convertMeasure(key), resultInfo.get(key));
+                }
+            }
+            return newResultInfo;
+        }).collect(Collectors.toList());
+        return resultInfos;
+    }
+
+    /**
+     * 转换column xxx[xxxx]-> xxx.xxxx
+     */
+    private String convertColumn(String column) {
+        return column.replaceAll("\\[", ".").replaceAll("]", "");
+    }
+
+    /**
+     * 转换度量值列 [xxxx] -> xxxx
+     */
+    private String convertMeasure(String measure) {
+        return measure.replaceAll("\\[", "").replaceAll("]", "");
     }
 }
