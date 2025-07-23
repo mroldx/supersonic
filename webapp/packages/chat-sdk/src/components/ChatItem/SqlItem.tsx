@@ -330,21 +330,31 @@ ${executeErrorMsg}
           </div>
         )}
         {sqlType && sqlInfo[sqlType] && (
-          <>
-            <SyntaxHighlighter
-              className={`${prefixCls}-code`}
-              language="sql"
-              style={solarizedlight}
-            >
-              {format(sqlInfo[sqlType])}
-            </SyntaxHighlighter>
-            <CopyToClipboard
-              text={format(sqlInfo[sqlType])}
-              onCopy={(text, result) => handleCopy(text, result)}
-            >
-              <button className={`${prefixCls}-copy-btn`}>复制代码</button>
-            </CopyToClipboard>
-          </>
+          (() => {
+            let formattedSql;
+            try {
+              formattedSql = format(sqlInfo[sqlType]);
+            } catch (e) {
+              formattedSql = sqlInfo[sqlType];
+            }
+            return (
+              <>
+                <SyntaxHighlighter
+                  className={`${prefixCls}-code`}
+                  language="sql"
+                  style={solarizedlight}
+                >
+                  {formattedSql}
+                </SyntaxHighlighter>
+                <CopyToClipboard
+                  text={formattedSql}
+                  onCopy={(text, result) => handleCopy(text, result)}
+                >
+                  <button className={`${prefixCls}-copy-btn`}>复制代码</button>
+                </CopyToClipboard>
+              </>
+            );
+          })()
         )}
       </div>
     </div>
