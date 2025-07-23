@@ -60,7 +60,7 @@ public class Olap4jExecutor implements QueryExecutor {
                 resultInfos = convertQueryResult(resultInfos);
                 //获取list里面map最多的key
                 int maxKeyLength = resultInfos.stream().map(Map::size).max(Integer::compareTo).orElse(0);
-                for (String key : resultInfos.get(maxKeyLength).keySet()) {
+                for (String key : resultInfos.get(maxKeyLength-1).keySet()) {
                     QueryColumn queryColumn = new QueryColumn();
                     queryColumn.setName(key);
                     queryColumn.setBizName(key);
