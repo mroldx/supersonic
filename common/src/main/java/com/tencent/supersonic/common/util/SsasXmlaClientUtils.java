@@ -90,7 +90,7 @@ public class SsasXmlaClientUtils {
             String techName = el.getAttribute("name");
             String bizName = el.getAttribute("sql:field");
             if (!bizName.isEmpty()) {
-                fieldMapping.put(techName, bizName);
+                fieldMapping.put(techName, bizName); // 或保留原始值
             }
         }
 
@@ -105,12 +105,27 @@ public class SsasXmlaClientUtils {
                 if (cells.item(j)instanceof Element cell) {
                     String techName = cell.getNodeName();
                     String bizName = fieldMapping.get(techName);
-                    rowMap.put(bizName, cell.getTextContent());// 存储业务名称
+                    String textContent = cell.getTextContent();
+                    if (isValidNumber(textContent)) {
+                        rowMap.put(bizName, new BigDecimal(textContent).toString());
+                    } else {
+                        log.warn("Invalid number format: {}", bizName);
+                        rowMap.put(bizName, textContent);
+                    }
                 }
             }
             resultList.add(rowMap);
         }
         return resultList;
+    }
+
+    private static boolean isValidNumber(String str) {
+        try {
+            new BigDecimal(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     private JSONObject checkResponse(HttpResponse response) {
