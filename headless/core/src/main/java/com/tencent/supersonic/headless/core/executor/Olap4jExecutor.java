@@ -81,6 +81,9 @@ public class Olap4jExecutor implements QueryExecutor {
                 resultInfo.put("查询结果", "0");
                 resultInfos.add(resultInfo);
             }
+            log.info("查询结果条数为：{},开始截取", resultInfos.size());
+            //截取100条
+            resultInfos = resultInfos.stream().limit(100).collect(Collectors.toList());
             queryResultWithColumns.setResultList(resultInfos);
             queryResultWithColumns.setSql(sql);
         } catch (Exception e) {
