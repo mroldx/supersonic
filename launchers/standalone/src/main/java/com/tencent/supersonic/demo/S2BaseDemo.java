@@ -98,17 +98,17 @@ public abstract class S2BaseDemo implements CommandLineRunner {
     @Value("${s2.demo.names:S2VisitsDemo}")
     protected List<String> demoList;
 
-    @Value("${spring.datasource.dynamic.datasource.master.driver-class-name}")
+    // @Value("${spring.datasource.dynamic.datasource.master.driver-class-name}")
     protected String driverClassName;
 
     public void run(String... args) {
-//        demoDatabase = addDatabaseIfNotExist();
-//        demoChatModel = addChatModelIfNotExist();
-//        if (demoList != null && demoList.contains(getClass().getSimpleName())) {
-//            if (checkNeedToRun()) {
-//             //   doRun();
-//            }
-//        }
+        // demoDatabase = addDatabaseIfNotExist();
+        // demoChatModel = addChatModelIfNotExist();
+        // if (demoList != null && demoList.contains(getClass().getSimpleName())) {
+        // if (checkNeedToRun()) {
+        // // doRun();
+        // }
+        // }
     }
 
     protected abstract void doRun();
