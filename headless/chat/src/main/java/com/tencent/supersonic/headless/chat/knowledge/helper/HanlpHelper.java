@@ -82,6 +82,7 @@ public class HanlpHelper {
             synchronized (HanlpHelper.class) {
                 if (CustomDictionary == null) {
                     CustomDictionary = new MultiCustomDictionary(HanLP.Config.CustomDictionaryPath);
+                    log.info("已读取文件：{}", Arrays.toString(HanLP.Config.CustomDictionaryPath));
                 }
             }
         }
