@@ -36,6 +36,8 @@ public abstract class SemanticQueryReq {
 
     protected DaxInfo daxInfo = new DaxInfo();
 
+    protected boolean needLimit = true;
+
     public void addModelId(Long modelId) {
         modelIds.add(modelId);
     }

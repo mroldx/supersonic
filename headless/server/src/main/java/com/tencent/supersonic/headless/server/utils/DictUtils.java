@@ -139,6 +139,7 @@ public class DictUtils {
         List<String> lines = new ArrayList<>();
         SemanticQueryReq semanticQueryReq = constructQueryReq(dictItemResp);
         semanticQueryReq.setNeedAuth(false);
+        semanticQueryReq.setNeedLimit(false);
         String bizName = dictItemResp.getBizName();
         String nature = dictItemResp.getNature();
         try {
@@ -150,9 +151,8 @@ public class DictUtils {
 
             int lineSize = 2;
 
-            // dax需要转换map key
+            // dax
             if (semanticQueryReq instanceof QueryDaxReq) {
-                bizName = wrapDaxMapKey(bizName);
                 lineSize = 1;
             }
             Map<String, Long> valueAndFrequencyPair = new HashMap<>(2000);

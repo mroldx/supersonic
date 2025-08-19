@@ -287,6 +287,7 @@ public class S2SemanticLayerService implements SemanticLayerService {
         }
         if (semanticQueryReq instanceof QueryDaxReq) {
             queryStatement = buildDaxQueryStatement((QueryDaxReq) semanticQueryReq, user);
+            queryStatement.setNeedLimit(semanticQueryReq.isNeedLimit());
         }
         if (semanticQueryReq instanceof QueryStructReq) {
             queryStatement = buildStructQueryStatement(semanticQueryReq);

@@ -58,16 +58,16 @@ public class Olap4jExecutor implements QueryExecutor {
             boolean isNull = CollectionUtils.isEmpty(resultInfos);
             if (!isNull) {
                 resultInfos = convertQueryResult(resultInfos);
-                //获取list里面map最多的key
-                int maxKeyLength = resultInfos.stream().map(Map::size).max(Integer::compareTo).orElse(0);
-                for (String key : resultInfos.get(maxKeyLength-1).keySet()) {
+                Map<String, Object> widest = resultInfos.stream()
+                        .max(Comparator.comparingInt(Map::size)).orElse(Collections.emptyMap());
+                for (String key : widest.keySet()) {
                     QueryColumn queryColumn = new QueryColumn();
                     queryColumn.setName(key);
                     queryColumn.setBizName(key);
                     queryColumn.setType("String");
                     queryColumns.add(queryColumn);
                 }
-                //给最后一列的showType设置为number
+                // 给最后一列的showType设置为number
                 queryColumns.get(queryColumns.size() - 1).setShowType(SemanticType.NUMBER.name());
                 queryResultWithColumns.setColumns(queryColumns);
             } else {
@@ -81,9 +81,11 @@ public class Olap4jExecutor implements QueryExecutor {
                 resultInfo.put("查询结果", "0");
                 resultInfos.add(resultInfo);
             }
-            log.info("查询结果条数为：{},开始截取", resultInfos.size());
-            //截取100条
-            resultInfos = resultInfos.stream().limit(100).collect(Collectors.toList());
+            if (queryStatement.getNeedLimit()) {
+                log.info("查询结果条数为：{},开始截取", resultInfos.size());
+                // 截取100条
+                resultInfos = resultInfos.stream().limit(100).collect(Collectors.toList());
+            }
             queryResultWithColumns.setResultList(resultInfos);
             queryResultWithColumns.setSql(sql);
         } catch (Exception e) {

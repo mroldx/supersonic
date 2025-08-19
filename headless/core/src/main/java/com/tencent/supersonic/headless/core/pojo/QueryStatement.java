@@ -25,6 +25,7 @@ public class QueryStatement {
     private SemanticSchemaResp semanticSchema;
     private Integer limit = 1000;
     private Boolean isTranslated = false;
+    private Boolean needLimit = false;
 
     public boolean isOk() {
         return StringUtils.isBlank(errMsg) && StringUtils.isNotBlank(sql);
