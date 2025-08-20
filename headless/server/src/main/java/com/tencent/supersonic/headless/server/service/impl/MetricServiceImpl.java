@@ -11,23 +11,20 @@ import com.google.common.collect.Sets;
 import com.tencent.supersonic.common.pojo.*;
 import com.tencent.supersonic.common.pojo.enums.*;
 import com.tencent.supersonic.common.util.BeanMapper;
+import com.tencent.supersonic.common.util.JsonUtil;
 import com.tencent.supersonic.headless.api.pojo.*;
+import com.tencent.supersonic.headless.api.pojo.enums.DimensionType;
 import com.tencent.supersonic.headless.api.pojo.enums.MapModeEnum;
 import com.tencent.supersonic.headless.api.pojo.enums.MetricDefineType;
 import com.tencent.supersonic.headless.api.pojo.request.*;
 import com.tencent.supersonic.headless.api.pojo.response.*;
 import com.tencent.supersonic.headless.server.facade.service.ChatLayerService;
-import com.tencent.supersonic.headless.server.persistence.dataobject.CollectDO;
-import com.tencent.supersonic.headless.server.persistence.dataobject.MetricDO;
-import com.tencent.supersonic.headless.server.persistence.dataobject.MetricQueryDefaultConfigDO;
+import com.tencent.supersonic.headless.server.persistence.dataobject.*;
 import com.tencent.supersonic.headless.server.persistence.mapper.MetricDOMapper;
 import com.tencent.supersonic.headless.server.persistence.repository.MetricRepository;
 import com.tencent.supersonic.headless.server.pojo.*;
 import com.tencent.supersonic.headless.server.service.*;
-import com.tencent.supersonic.headless.server.utils.AliasGenerateHelper;
-import com.tencent.supersonic.headless.server.utils.MetricCheckUtils;
-import com.tencent.supersonic.headless.server.utils.MetricConverter;
-import com.tencent.supersonic.headless.server.utils.ModelClusterBuilder;
+import com.tencent.supersonic.headless.server.utils.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -77,57 +74,85 @@ public class MetricServiceImpl extends ServiceImpl<MetricDOMapper, MetricDO>
     @Override
     public MetricResp createMetric(MetricReq metricReq, User user) {
         checkExist(Lists.newArrayList(metricReq));
-        MetricCheckUtils.checkParam(metricReq);
+        MetricCheckUtils.checkParam(Lists.newArrayList(metricReq));
         metricReq.createdBy(user.getName());
         MetricDO metricDO = MetricConverter.convert2MetricDO(metricReq);
         metricRepository.createMetric(metricDO);
         sendEventBatch(Lists.newArrayList(metricDO), EventType.ADD);
+        // should update modelDetail as well
+        modelService.updateModelByDimAndMetric(metricReq.getModelId(), null,
+                Lists.newArrayList(metricReq), user);
+
+
         return MetricConverter.convert2MetricResp(metricDO);
     }
 
     @Override
     public void createMetricBatch(List<MetricReq> metricReqs, User user) {
-        if (CollectionUtils.isEmpty(metricReqs)) {
-            return;
-        }
-        Long modelId = metricReqs.get(0).getModelId();
-        List<MetricResp> metricResps = getMetrics(new MetaFilter(Lists.newArrayList(modelId)));
-        Map<String, MetricResp> bizNameMap = metricResps.stream()
-                .collect(Collectors.toMap(MetricResp::getBizName, a -> a, (k1, k2) -> k1));
-        Map<String, MetricResp> nameMap = metricResps.stream()
-                .collect(Collectors.toMap(MetricResp::getName, a -> a, (k1, k2) -> k1));
-        List<MetricReq> metricToInsert = Lists.newArrayList();
-        metricReqs.stream().forEach(metric -> {
-            if (!bizNameMap.containsKey(metric.getBizName())
-                    && !nameMap.containsKey(metric.getName())) {
-                metricToInsert.add(metric);
-            } else {
-                MetricResp metricRespByBizName = bizNameMap.get(metric.getBizName());
-                MetricResp metricRespByName = nameMap.get(metric.getName());
-                if (null != metricRespByBizName) {
-                    metric.setId(metricRespByBizName.getId());
-                    this.updateMetric(metric, user);
-                } else {
-                    if (null != metricRespByName) {
-                        metric.setId(metricRespByName.getId());
-                        this.updateMetric(metric, user);
-                    }
-                }
-            }
-        });
-        if (CollectionUtils.isEmpty(metricToInsert)) {
-            return;
-        }
         List<MetricDO> metricDOS =
-                metricToInsert.stream().peek(metric -> metric.createdBy(user.getName()))
+                metricReqs.stream().peek(metric -> metric.createdBy(user.getName()))
                         .map(MetricConverter::convert2MetricDO).collect(Collectors.toList());
         metricRepository.createMetricBatch(metricDOS);
+        // should update modelDetail as well
+        modelService.updateModelByDimAndMetric(metricReqs.get(0).getModelId(), null, metricReqs,
+                user);
+
         sendEventBatch(metricDOS, EventType.ADD);
     }
 
     @Override
+    public void alterMetricBatch(List<MetricReq> metricReqs, Long modelId, User user) {
+        List<MetricResp> metricResps = getMetrics(new MetaFilter(Lists.newArrayList(modelId)));
+        // get all metric in model, only use bizname, because name can be changed to everything
+        Map<String, MetricResp> bizNameMap = metricResps.stream()
+                .collect(Collectors.toMap(MetricResp::getBizName, a -> a, (k1, k2) -> k1));
+
+        List<MetricReq> metricToInsert = Lists.newArrayList();
+        List<MetricReq> metricToUpdate = Lists.newArrayList();
+        List<Long> metricToDelete = Lists.newArrayList();
+
+        metricReqs.stream().forEach(metric -> {
+            if (!bizNameMap.containsKey(metric.getBizName())) {
+                metricToInsert.add(metric);
+            } else {
+                MetricResp metricRespByBizName = bizNameMap.get(metric.getBizName());
+                if (null != metricRespByBizName && isChange(metric, metricRespByBizName)) {
+                    metric.setId(metricRespByBizName.getId());
+                    metric.updatedBy(user.getName());
+                    metricToUpdate.add(metric);
+                }
+            }
+        });
+
+        // the bizNames from alter dimensions
+        List<String> bizNames =
+                metricReqs.stream().map(MetricReq::getBizName).collect(Collectors.toList());
+        bizNameMap.keySet().forEach(bizNameInDb -> {
+            if (!bizNames.contains(bizNameInDb)) {
+                metricToDelete.add(bizNameMap.get(bizNameInDb).getId());
+            }
+        });
+
+        // insert
+        if (!CollectionUtils.isEmpty(metricToInsert)) {
+            createMetricBatch(metricToInsert, user);
+        }
+
+        // update
+        if (!CollectionUtils.isEmpty(metricToUpdate)) {
+            updateMetricBatch(metricToUpdate, user);
+        }
+
+        // delete
+        if (!CollectionUtils.isEmpty(metricToDelete)) {
+            deleteMetricBatch(metricToDelete, user);
+        }
+
+    }
+
+    @Override
     public MetricResp updateMetric(MetricReq metricReq, User user) {
-        MetricCheckUtils.checkParam(metricReq);
+        MetricCheckUtils.checkParam(Lists.newArrayList(metricReq));
         checkExist(Lists.newArrayList(metricReq));
         metricReq.updatedBy(user.getName());
         MetricDO metricDO = metricRepository.getMetricById(metricReq.getId());
@@ -140,8 +165,25 @@ public class MetricServiceImpl extends ServiceImpl<MetricDOMapper, MetricDO>
             dataItem.setNewName(metricDO.getName());
             sendEvent(dataItem, EventType.UPDATE);
         }
+        // should update modelDetail as well
+        modelService.updateModelByDimAndMetric(metricReq.getModelId(), null,
+                Lists.newArrayList(metricReq), user);
         return MetricConverter.convert2MetricResp(metricDO);
     }
+
+    @Override
+    public void updateMetricBatch(List<MetricReq> metricReqs, User user) {
+        MetricCheckUtils.checkParam(metricReqs);
+        checkExist(metricReqs);
+        List<MetricDO> metricDOS = metricReqs.stream().map(MetricConverter::convert2MetricDO)
+                .collect(Collectors.toList());
+        metricRepository.batchUpdateMetric(metricDOS);
+        // should update modelDetail as well
+        modelService.updateModelByDimAndMetric(metricReqs.get(0).getModelId(), null, metricReqs,
+                user);
+        sendEventBatch(metricDOS, EventType.UPDATE);
+    }
+
 
     @Override
     public void batchUpdateStatus(MetaBatchReq metaBatchReq, User user) {
@@ -240,7 +282,31 @@ public class MetricServiceImpl extends ServiceImpl<MetricDOMapper, MetricDO>
         metricDO.setUpdatedAt(new Date());
         metricDO.setUpdatedBy(user.getName());
         metricRepository.updateMetric(metricDO);
+        // should update modelDetail
+        modelService.deleteModelDetailByDimAndMetric(metricDO.getModelId(), null,
+                Lists.newArrayList(metricDO));
         sendEventBatch(Lists.newArrayList(metricDO), EventType.DELETE);
+    }
+
+    @Override
+    public void deleteMetricBatch(List<Long> idList, User user) {
+        MetricsFilter metricsFilter = new MetricsFilter();
+        metricsFilter.setMetricIds(idList);
+        List<MetricDO> metricDOList = metricRepository.getMetrics(metricsFilter);
+        if (CollectionUtils.isEmpty(metricDOList)) {
+            throw new RuntimeException(
+                    String.format("the metrics %s not exist", StringUtils.join(",", idList)));
+        }
+        metricDOList.forEach(metricDO -> {
+            metricDO.setStatus(StatusEnum.DELETED.getCode());
+            metricDO.setUpdatedAt(new Date());
+            metricDO.setUpdatedBy(user.getName());
+        });
+        metricRepository.batchUpdateStatus(metricDOList);
+        // should update modelDetail
+        modelService.deleteModelDetailByDimAndMetric(metricDOList.get(0).getModelId(), null,
+                metricDOList);
+        sendEventBatch(metricDOList, EventType.DELETE);
     }
 
     @Override
@@ -549,7 +615,7 @@ public class MetricServiceImpl extends ServiceImpl<MetricDOMapper, MetricDO>
         return metricQueryDefaultConfig;
     }
 
-    private void checkExist(List<MetricBaseReq> metricReqs) {
+    private void checkExist(List<MetricReq> metricReqs) {
         Long modelId = metricReqs.get(0).getModelId();
         MetaFilter metaFilter = new MetaFilter();
         metaFilter.setModelIds(Lists.newArrayList(modelId));
@@ -617,7 +683,9 @@ public class MetricServiceImpl extends ServiceImpl<MetricDOMapper, MetricDO>
 
     private DataEvent getDataEvent(List<MetricDO> metricDOS, EventType eventType) {
         List<DataItem> dataItems =
-                metricDOS.stream().map(this::getDataItem).collect(Collectors.toList());
+                metricDOS.stream().map(this::getDataItem)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
         return new DataEvent(this, dataItems, eventType);
     }
 
@@ -830,8 +898,10 @@ public class MetricServiceImpl extends ServiceImpl<MetricDOMapper, MetricDO>
         return modelResps.stream().map(ModelResp::getId).collect(Collectors.toSet());
     }
 
-    private boolean isNameChange(MetricReq metricReq, MetricResp metricResp) {
+    private boolean isChange(MetricReq metricReq, MetricResp metricResp) {
         boolean isNameChange = !metricReq.getName().equals(metricResp.getName());
-        return isNameChange;
+        boolean isBizNameChange = !Objects.equals(metricReq.getMetricDefineByMeasureParams(),
+                metricResp.getMetricDefineByMeasureParams());
+        return isNameChange || isBizNameChange;
     }
 }

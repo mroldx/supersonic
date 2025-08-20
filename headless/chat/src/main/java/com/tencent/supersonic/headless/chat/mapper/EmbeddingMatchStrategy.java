@@ -168,11 +168,11 @@ public class EmbeddingMatchStrategy extends BatchMatchStrategy<EmbeddingResult> 
             variable.put("retrievedInfo", JSONObject.toJSONString(results));
 
             Prompt prompt = PromptTemplate.from(LLM_FILTER_PROMPT).apply(variable);
-
-            ChatModelConfig chatModelConfig=null;
-            if(chatQueryContext.getRequest().getChatAppConfig()!=null
-                    && chatQueryContext.getRequest().getChatAppConfig().containsKey("REWRITE_MULTI_TURN")){
-                chatModelConfig=chatQueryContext.getRequest().getChatAppConfig().get("REWRITE_MULTI_TURN").getChatModelConfig();
+            ChatModelConfig chatModelConfig = null;
+            if (chatQueryContext.getRequest().getChatAppConfig() != null && chatQueryContext
+                    .getRequest().getChatAppConfig().containsKey("REWRITE_MULTI_TURN")) {
+                chatModelConfig = chatQueryContext.getRequest().getChatAppConfig()
+                        .get("REWRITE_MULTI_TURN").getChatModelConfig();
             }
             ChatLanguageModel chatLanguageModel = ModelProvider.getChatModel(chatModelConfig);
             String response = chatLanguageModel.generate(prompt.toUserMessage().singleText());

@@ -15,6 +15,8 @@ import com.tencent.supersonic.headless.api.pojo.request.*;
 import com.tencent.supersonic.headless.api.pojo.response.*;
 import com.tencent.supersonic.headless.server.modeller.SemanticModeller;
 import com.tencent.supersonic.headless.server.persistence.dataobject.DateInfoDO;
+import com.tencent.supersonic.headless.server.persistence.dataobject.DimensionDO;
+import com.tencent.supersonic.headless.server.persistence.dataobject.MetricDO;
 import com.tencent.supersonic.headless.server.persistence.dataobject.ModelDO;
 import com.tencent.supersonic.headless.server.persistence.repository.DateInfoRepository;
 import com.tencent.supersonic.headless.server.persistence.repository.ModelRepository;
@@ -87,8 +89,12 @@ public class ModelServiceImpl implements ModelService {
         // checkParams(modelReq);
         ModelDO modelDO = ModelConverter.convert(modelReq, user);
         modelRepository.createModel(modelDO);
-        batchCreateDimension(modelDO, user);
-        batchCreateMetric(modelDO, user);
+        // create or update dimension
+        List<DimensionReq> dimensionReqs = ModelConverter.convertDimensionList(modelDO);
+        dimensionService.alterDimensionBatch(dimensionReqs, modelDO.getId(), user);
+        // create or update metric
+        List<MetricReq> metricReqs = ModelConverter.convertMetricList(modelDO);
+        metricService.alterMetricBatch(metricReqs, modelDO.getId(), user);
         sendEvent(modelDO, EventType.ADD);
         return ModelConverter.convert(modelDO);
     }
@@ -117,8 +123,12 @@ public class ModelServiceImpl implements ModelService {
         ModelDO modelDO = modelRepository.getModelById(modelReq.getId());
         ModelConverter.convert(modelDO, modelReq, user);
         modelRepository.updateModel(modelDO);
-        batchCreateDimension(modelDO, user);
-        batchCreateMetric(modelDO, user);
+        // create or update dimension
+        List<DimensionReq> dimensionReqs = ModelConverter.convertDimensionList(modelDO);
+        dimensionService.alterDimensionBatch(dimensionReqs, modelDO.getId(), user);
+        // create or update metric
+        List<MetricReq> metricReqs = ModelConverter.convertMetricList(modelDO);
+        metricService.alterMetricBatch(metricReqs, modelDO.getId(), user);
         sendEvent(modelDO, EventType.UPDATE);
         return ModelConverter.convert(modelDO);
     }
@@ -237,32 +247,6 @@ public class ModelServiceImpl implements ModelService {
         dbSchema.setSql(modelSchemaReq.getSql());
         dbSchema.setDbColumns(dbColumns);
         return dbSchema;
-    }
-
-    private void batchCreateDimension(ModelDO modelDO, User user) throws Exception {
-        List<DimensionReq> dimensionReqs = ModelConverter.convertDimensionList(modelDO);
-        List<DimensionReq> dimensionToCreate = new ArrayList<>();
-        for (DimensionReq dimensionReq : dimensionReqs) {
-            DimensionResp dimensionResp =
-                    dimensionService.getDimension(dimensionReq.getBizName(), modelDO.getId());
-            if (dimensionResp == null) {
-                dimensionToCreate.add(dimensionReq);
-            }
-        }
-        dimensionService.createDimensionBatch(dimensionToCreate, user);
-    }
-
-    private void batchCreateMetric(ModelDO modelDO, User user) throws Exception {
-        List<MetricReq> metricReqs = ModelConverter.convertMetricList(modelDO);
-        List<MetricReq> metricToCreate = new ArrayList<>();
-        for (MetricReq metricReq : metricReqs) {
-            MetricResp metricResp =
-                    metricService.getMetric(modelDO.getId(), metricReq.getBizName());
-            if (metricResp == null) {
-                metricToCreate.add(metricReq);
-            }
-        }
-        metricService.createMetricBatch(metricToCreate, user);
     }
 
     private void checkParams(ModelReq modelReq) {
@@ -537,32 +521,88 @@ public class ModelServiceImpl implements ModelService {
     }
 
     @Override
-    public Dimension updateDimension(DimensionReq dimensionReq, User user) {
-        ModelDO modelDO = getModelDO(dimensionReq.getModelId());
+    public void updateModelByDimAndMetric(Long modelId, List<DimensionReq> dimensionReqList,
+            List<MetricReq> metricReqList, User user) {
+        ModelDO modelDO = getModelDO(modelId);
         ModelDetail modelDetail = JsonUtil.toObject(modelDO.getModelDetail(), ModelDetail.class);
-        Optional<Dimension> dimOptional = modelDetail.getDimensions().stream()
-                .filter(dimension -> dimension.getBizName().equals(dimensionReq.getBizName()))
-                .findFirst();
-        Dimension result;
-        if (dimOptional.isPresent()) {
-            Dimension dimension = dimOptional.get();
-            dimension.setExpr(dimensionReq.getExpr());
-            dimension.setName(dimensionReq.getName());
-            dimension.setType(DimensionType.valueOf(dimensionReq.getType()));
-            dimension.setDescription(dimensionReq.getDescription());
-            result = dimension;
-        } else {
-            Dimension dimension = Dimension.builder().name(dimensionReq.getName())
-                    .bizName(dimensionReq.getBizName()).expr(dimensionReq.getExpr())
-                    .type(DimensionType.valueOf(dimensionReq.getType()))
-                    .description(dimensionReq.getDescription()).build();
-            modelDetail.getDimensions().add(dimension);
-            result = dimension;
+        if (!CollectionUtils.isEmpty(dimensionReqList)) {
+            dimensionReqList.forEach(dimensionReq -> {
+                Optional<Dimension> dimOptional = modelDetail.getDimensions().stream().filter(
+                        dimension -> dimension.getBizName().equals(dimensionReq.getBizName()))
+                        .findFirst();
+                if (dimOptional.isPresent()) {
+                    Dimension dimension = dimOptional.get();
+                    dimension.setExpr(dimensionReq.getExpr());
+                    dimension.setName(dimensionReq.getName());
+                    dimension.setType(DimensionType.valueOf(dimensionReq.getType()));
+                    dimension.setDescription(dimensionReq.getDescription());
+                } else {
+                    Dimension dimension = Dimension.builder().name(dimensionReq.getName())
+                            .bizName(dimensionReq.getBizName()).expr(dimensionReq.getExpr())
+                            .type(DimensionType.valueOf(dimensionReq.getType()))
+                            .description(dimensionReq.getDescription()).build();
+                    modelDetail.getDimensions().add(dimension);
+                }
+            });
+        }
+
+        if (!CollectionUtils.isEmpty(metricReqList)) {
+            // 目前modeltail中的measure
+            Map<String, Measure> mesureMap = modelDetail.getMeasures().stream()
+                    .collect(Collectors.toMap(Measure::getBizName, a -> a, (k1, k2) -> k1));
+            metricReqList.forEach(metricReq -> {
+                if (null != metricReq.getMetricDefineByMeasureParams() && !CollectionUtils
+                        .isEmpty(metricReq.getMetricDefineByMeasureParams().getMeasures())) {
+                    for (Measure alterMeasure : metricReq.getMetricDefineByMeasureParams()
+                            .getMeasures()) {
+                        if (mesureMap.containsKey(alterMeasure.getBizName())) {
+                            Measure measure = mesureMap.get(alterMeasure.getBizName());
+                            BeanUtils.copyProperties(alterMeasure, measure);
+                        } else {
+                            modelDetail.getMeasures().add(alterMeasure);
+                        }
+                    }
+                } else {
+                    modelDetail.getMeasures().clear();
+                }
+            });
         }
 
         modelDO.setModelDetail(JsonUtil.toString(modelDetail));
         modelRepository.updateModel(modelDO);
-        return result;
+    }
+
+    @Override
+    public void deleteModelDetailByDimAndMetric(Long modelId, List<DimensionDO> dimensionList,
+            List<MetricDO> metricReqList) {
+        ModelDO modelDO = getModelDO(modelId);
+        ModelDetail modelDetail = JsonUtil.toObject(modelDO.getModelDetail(), ModelDetail.class);
+        if (!CollectionUtils.isEmpty(dimensionList)) {
+            dimensionList.forEach(dimensionReq -> {
+                Optional<Dimension> dimOptional = modelDetail.getDimensions().stream().filter(
+                        dimension -> dimension.getBizName().equals(dimensionReq.getBizName()))
+                        .findFirst();
+                if (dimOptional.isPresent()) {
+                    Dimension dimension = dimOptional.get();
+                    modelDetail.getDimensions().remove(dimension);
+                }
+            });
+        }
+
+        if (!CollectionUtils.isEmpty(metricReqList)) {
+            metricReqList.forEach(metricReq -> {
+                Optional<Measure> metricOptional = modelDetail.getMeasures().stream()
+                        .filter(measure -> measure.getBizName().equals(metricReq.getBizName()))
+                        .findFirst();
+                if (metricOptional.isPresent()) {
+                    Measure measure = metricOptional.get();
+                    modelDetail.getMeasures().remove(measure);
+                }
+            });
+        }
+
+        modelDO.setModelDetail(JsonUtil.toString(modelDetail));
+        modelRepository.updateModel(modelDO);
     }
 
     protected ModelDO getModelDO(Long id) {
