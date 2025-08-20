@@ -144,7 +144,13 @@ public class DataSetSchemaBuilder {
         for (DimSchemaResp dim : resp.getDimensions()) {
             Set<String> dimValueAlias = new HashSet<>();
             List<DimValueMap> dimValueMaps = dim.getDimValueMaps();
+            List<SchemaValueMap> schemaValueMaps = new ArrayList<>();
             if (!CollectionUtils.isEmpty(dimValueMaps)) {
+                for (DimValueMap dimValueMap : dimValueMaps) {
+                    SchemaValueMap schemaValueMap = new SchemaValueMap();
+                    BeanUtils.copyProperties(dimValueMap, schemaValueMap);
+                    schemaValueMaps.add(schemaValueMap);
+                }
                 for (DimValueMap dimValueMap : dimValueMaps) {
                     if (StringUtils.isNotEmpty(dimValueMap.getBizName())) {
                         dimValueAlias.add(dimValueMap.getBizName());
@@ -157,7 +163,7 @@ public class DataSetSchemaBuilder {
             SchemaElement dimValueToAdd = SchemaElement.builder().dataSetId(resp.getId())
                     .dataSetName(resp.getName()).model(dim.getModelId()).id(dim.getId())
                     .name(dim.getName()).bizName(dim.getBizName()).type(SchemaElementType.VALUE)
-                    .useCnt(dim.getUseCnt())
+                    .schemaValueMaps(schemaValueMaps).useCnt(dim.getUseCnt())
                     .alias(new ArrayList<>(Arrays.asList(dimValueAlias.toArray(new String[0]))))
                     .isTag(dim.getIsTag()).description(dim.getDescription()).build();
             dimensionValues.add(dimValueToAdd);
